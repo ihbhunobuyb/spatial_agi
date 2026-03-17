@@ -6,21 +6,21 @@
 
 ```
 spatial_agi/
-├── papers/ # 论文介绍文档
-│ ├── 2026-03-02_01_spatialalign.md
-│ ├── 2026-03-02_02_scale_pragmatics.md
-│ ├── 2026-03-02_03_sotalign.md
-│ ├── 2026-03-02_04_retrieve_segment.md
-│ ├── 2026-03-02_05_lmm_classifiers.md
-│ ├── 2026-03-02_06_omnigaia.md
-│ ├── 2026-03-02_07_dysl_vla.md
-│ ├── 2026-03-02_08_trajtok.md
-│ ├── 2026-03-02_09_imagination.md
-│ └── 2026-03-02_10_sope.md
-├── daily_thinking/ # 每日思考
-│ └── 2026-03-02.md
-├── papers_list.md # 论文列表
-└── README.md # 本文档
+├── papers/                    # 论文介绍文档
+│   ├── 2026-03-17_01_spatialalign.md
+│   ├── 2026-03-17_02_scale_pragmatics.md
+│   ├── 2026-03-17_03_sotalign.md
+│   ├── 2026-03-17_04_retrieve_segment.md
+│   ├── 2026-03-17_05_lmm_classifiers.md
+│   ├── 2026-03-17_06_omnigaia.md
+│   ├── 2026-03-17_07_dysl_vla.md
+│   ├── 2026-03-17_08_trajtok.md
+│   ├── 2026-03-17_09_imagination.md
+│   └── 2026-03-17_10_sope.md
+├── daily_thinking/            # 每日思考
+│   └── 2026-03-17.md
+├── papers_list.md             # 论文列表
+└── README.md                  # 本文档
 ```
 
 ## 研究方法
@@ -79,9 +79,9 @@ Spatial AGI应该是全模态的，整合视觉、语言、音频信息。
 
 ## 相关资源
 
-- [Research Skill文档](~/.openclaw/workspace/skills/spatial-agi-research/SKILL.md)
-- [论文搜索脚本](~/.openclaw/workspace/scripts/search_arxiv.py)
-- [Research Assistant技能](~/.openclaw/workspace/skills/research-assistant/SKILL.md)
+- [Research Skill文档](./skills/spatial-agi-research/SKILL.md)
+- [论文搜索脚本](./scripts/search_arxiv.py)
+- [Research Assistant技能](./skills/research-assistant/SKILL.md)
 
 ## 贡献
 
