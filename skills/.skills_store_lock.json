@@ -6,6 +6,18 @@
       "zip_url": "https://lightmake.site/api/v1/download?slug=deep-research-pro",
       "source": "skillhub",
       "version": "1.0.2"
+    },
+    "research-assistant": {
+      "name": "Research Assistant",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=research-assistant",
+      "source": "skillhub",
+      "version": "1.0.1"
+    },
+    "notebooklm-skill": {
+      "name": "Notebooklm",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=notebooklm-skill",
+      "source": "skillhub",
+      "version": "0.1.0"
     }
   }
 }

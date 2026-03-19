@@ -44,6 +44,14 @@
     "deep-research-pro": {
       "version": "1.0.2",
       "installedAt": 1773635440753
+    },
+    "research-assistant": {
+      "version": "1.0.1",
+      "installedAt": 1773757191137
+    },
+    "notebooklm-skill": {
+      "version": "0.1.0",
+      "installedAt": 1773758362515
     }
   }
 }
