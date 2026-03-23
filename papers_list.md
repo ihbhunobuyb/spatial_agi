@@ -120,3 +120,60 @@
 - **关键词**: 3D生成, tokenization, 自回归模型, 语义分词
 - **摘要**: Tokenization是自回归模型中生成建模的关键技术，3D形状的最佳tokenization仍然是一个开放问题。
 - **文档**: papers/2026-03-20_05_LoST.md
+
+## 2026-03-23 研究的论文（精选5篇）
+
+### 1. IndoorR2X: Indoor Robot-to-Everything Coordination with LLM-Driven Planning
+
+- **arXiv ID**: 2603.20182v1
+- **发布日期**: 2026-03-20
+- **作者**: Fan Yang, Soumya Teotia, Shaunak A. Mehta, et al.
+- **类别**: cs.RO, cs.MA
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 机器人协调, LLM规划, 室内导航, R2R, R2IoT
+- **摘要**: 虽然机器人对机器人(R2R)通信可以改善室内场景理解，但R2R本身无法克服部分可观测性问题。本文提出利用环境中已有的IoT设备来补充感知信息。
+- **文档**: papers/2026-03-23_01_IndoorR2X.md
+
+### 2. EgoForge: Goal-Directed Egocentric World Simulator
+
+- **arXiv ID**: 2603.20169v1
+- **发布日期**: 2026-03-20
+- **作者**: Yifan Shen, Jiateng Liu, Xinzhuo Li, et al.
+- **类别**: cs.CV, cs.MM
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 世界模型, 第一人称视角, 目标导向, 生成式模型
+- **摘要**: 生成式世界模型在模拟动态环境方面显示出潜力，但第一人称视频仍然具有挑战性，因为视角快速变化、频繁的手-物体交互、以及目标导向的过程。
+- **文档**: papers/2026-03-23_02_EgoForge.md
+
+### 3. VideoSeek: Long-Horizon Video Agent with Tool-Guided Seeking
+
+- **arXiv ID**: 2603.20185v1
+- **发布日期**: 2026-03-20
+- **作者**: Jingyang Lin, Jialian Wu, Jiang Liu, et al.
+- **类别**: cs.CV, cs.AI, cs.CL
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 视频Agent, 长时理解, 工具使用, 逻辑流
+- **摘要**: 大多数视频Agent方法依赖于对密集采样视频帧的贪婪解析，导致高计算成本。本文提出VideoSeek，利用视频逻辑流来激活工具使用。
+- **文档**: papers/2026-03-23_03_VideoSeek.md
+
+### 4. LagerNVS: Latent Geometry for Fully Neural Real-time Novel View Synthesis
+
+- **arXiv ID**: 2603.20176v1
+- **发布日期**: 2026-03-20
+- **作者**: Stanislaw Szymanowicz, Minghao Chen, Jianyuan Wang, Christian Rupprecht, Andrea Vedaldi
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 3D表示, 新视角合成, 神经渲染, 实时渲染
+- **摘要**: 神经网络可以在不进行显式3D重建的情况下执行3D任务，但本文认为在网络设计中引入强3D归纳偏置仍然是有帮助的。
+- **文档**: papers/2026-03-23_04_LagerNVS.md
+
+### 5. MME-CoF-Pro: Evaluating Reasoning Coherence in Video Generative Models
+
+- **arXiv ID**: 2603.20194v1
+- **发布日期**: 2026-03-20
+- **作者**: Yu Qi, Xinyi Xu, Ziyu Guo, et al.
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 视频生成, 推理一致性, 评估基准, 因果关系
+- **摘要**: 视频生成模型显示出新兴的推理行为，但确保生成的事件在帧之间保持因果一致性对于可靠部署至关重要。
+- **文档**: papers/2026-03-23_05_MME-CoF-Pro.md
