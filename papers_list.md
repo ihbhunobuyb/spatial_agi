@@ -121,6 +121,73 @@
 - **摘要**: Tokenization是自回归模型中生成建模的关键技术，3D形状的最佳tokenization仍然是一个开放问题。
 - **文档**: papers/2026-03-20_05_LoST.md
 
+## 2026-03-24 研究的论文（精选5篇）
+
+### 1. MME-CoF-Pro: Evaluating Reasoning Coherence in Video Generative Models with Text and Visual Hints
+
+- **arXiv ID**: 2603.20194v1
+- **发布日期**: 2026-03-20
+- **作者**: Yu Qi, Xinyi Xu, Ziyu Guo, et al.
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 视频生成, 推理一致性, 评估基准, 因果关系
+- **摘要**: 视频生成模型显示出新兴的推理行为，但确保生成的事件在帧之间保持因果一致性对于可靠部署至关重要。本文提出MME-CoF-Pro来填补这一空白。
+- **文档**: papers/2026-03-24_01_MME-CoF-Pro.md
+- **NotebookLM**: 分析完成
+- **文档行数**: 723行
+
+### 2. LagerNVS: Latent Geometry for Fully Neural Real-time Novel View Synthesis
+
+- **arXiv ID**: 2603.20176v1
+- **发布日期**: 2026-03-20
+- **作者**: Stanislaw Szymanowicz, Minghao Chen, Jianyuan Wang, Christian Rupprecht, Andrea Vedaldi
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 3D表示, 新视角合成, 神经渲染, 实时渲染
+- **摘要**: 神经网络可以在不进行显式3D重建的情况下执行3D任务，但本文认为在网络设计中引入强3D归纳偏置仍然是有帮助的。
+- **文档**: papers/2026-03-24_02_LagerNVS.md
+- **NotebookLM**: 分析完成
+- **文档行数**: 803行
+
+### 3. EgoForge: Goal-Directed Egocentric World Simulator
+
+- **arXiv ID**: 2603.20169v1
+- **发布日期**: 2026-03-20
+- **作者**: Yifan Shen, Jiateng Liu, Xinzhuo Li, et al.
+- **类别**: cs.CV, cs.MM
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 世界模型, 第一人称视角, 目标导向, 生成式模型
+- **摘要**: 生成式世界模型在模拟动态环境方面显示出潜力，但第一人称视频仍然具有挑战性，因为视角快速变化、频繁的手-物体交互、以及目标导向的过程。
+- **文档**: papers/2026-03-24_03_EgoForge.md
+- **NotebookLM**: 分析完成
+- **文档行数**: 558行
+
+### 4. Learning Dynamic Belief Graphs for Theory-of-Mind Reasoning
+
+- **arXiv ID**: 2603.20170v1
+- **发布日期**: 2026-03-20
+- **作者**: Ruxiao Chen, Xilei Zhao, Thomas J. Cova, Frank A. Drews
+- **类别**: cs.AI
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: ToM推理, 信念图, 动态推理, LLM
+- **摘要**: 理论心智(ToM)推理需要推断人们隐含的、不断演变的信念如何塑造他们在不确定性下的行为。
+- **文档**: papers/2026-03-24_04_DynamicBeliefGraphs.md
+- **NotebookLM**: 分析完成
+- **文档行数**: 755行
+
+### 5. CoVR-R: Reason-Aware Composed Video Retrieval
+
+- **arXiv ID**: 2603.20190v1
+- **发布日期**: 2026-03-20
+- **作者**: 待确认
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 视频检索, 组合检索, 时空推理, 零样本
+- **摘要**: 组合视频检索(CoVR)旨在给定参考视频和文本修改找到目标视频。本文认为成功的CoVR需要对这些后效应进行推理。
+- **文档**: papers/2026-03-24_05_CoVR-R.md
+- **NotebookLM**: 分析完成
+- **文档行数**: 589行
+
 ## 2026-03-23 研究的论文（精选5篇）
 
 ### 1. IndoorR2X: Indoor Robot-to-Everything Coordination with LLM-Driven Planning

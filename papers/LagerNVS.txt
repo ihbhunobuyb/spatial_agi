@@ -1,0 +1,1190 @@
+                                           LagerNVS: Latent Geometry for Fully Neural Real-time Novel View Synthesis
+
+                                                                        Stanislaw Szymanowicz 1,2      Minghao Chen 1,2    Jianyuan Wang 1,2
+                                                                                     Christian Rupprecht 1    Andrea Vedaldi 1,2
+                                                                             1                                                          2
+                                                                                 Visual Geometry Group, University of Oxford                Meta AI
+arXiv:2603.20176v1 [cs.CV] 20 Mar 2026
+
+
+
+
+                                                                Input
+                                                        Input
+
+
+
+
+                                                                                 Novel View Render
+
+
+
+
+                                         Novel View Render                       Novel View Render
+
+
+
+
+                                         Figure 1. LagerNVS is a real-time, feed-forward, and generalizable Novel View Synthesis method. It achieves state-of-the-art quality
+                                         by rendering views directly with a network, without explicit 3D reconstruction, and by incorporating strong 3D-aware features. These
+                                         examples were rendered at more than 30 FPS at 512×512 on a single H100 GPU.
+
+                                                                           Abstract
+                                         Recent work has shown that neural networks can perform               1. Introduction
+                                         3D tasks such as Novel View Synthesis (NVS) without ex-
+                                         plicit 3D reconstruction. Even so, we argue that strong              Novel View Synthesis (NVS) is the task of rendering new
+                                         3D inductive biases are still helpful in the design of such          views of a scene from a set of other views. The most com-
+                                         networks. We show this point by introducing LagerNVS,                mon approach to NVS is to fit a 3D model of the scene to the
+                                         an encoder-decoder neural network for NVS that builds                given views via optimization; then, the resulting explicit 3D
+                                         on ‘3D-aware’ latent features. The encoder is initialized            reconstruction is rendered from the target viewpoints [37,
+                                         from a 3D reconstruction network pre-trained using explicit          49]. This process can work well, but is slow and prone to
+                                         3D supervision. This is paired with a lightweight decoder,           overfitting unless the number of source views is large. A
+                                         and trained end-to-end with photometric losses. LagerNVS             recent alternative is to learn a neural network that performs
+                                         achieves state-of-the-art deterministic feed-forward Novel           the 3D reconstruction in a feed-forward (optimization-free)
+                                         View Synthesis (including 31.4 PSNR on Re10k), with and              manner. This is faster and can work well even with few
+                                         without known cameras, renders in real time, generalizes             or single source views because of the priors learned by the
+                                         to in-the-wild data, and can be paired with a diffusion de-          network [10, 12, 13, 31, 34, 63, 66, 67, 81, 84]. The logi-
+                                         coder for generative extrapolation. See szymanowiczs.                cal next step is to bypass the 3D reconstruction altogether:
+                                         github.io/lagernvs for code, models, and examples.                   methods like SRT [56], LVSM [35], and RayZer [33] have
+     Inputs          Reconstruction     3D-aware tokens Rendering     cluding those [34] that are based on VGGT.
+         optional
+                                                                         We also show that training the network on a large mix-
+                                                                      ture of datasets is important for NVS quality and general-
+                                                      Target camera   ization. Compared to prior models that are usually trained
+                        Encoder                                       on single datasets, LagerNVS works well on ego-centric,
+                      Initialize from
+                                                        Decoder       360◦ , and non-square images, as well as images collected
+                          VGGT                               30FPS+   in-the-wild, even when source camera poses are unknown,
+                                                                      with a single set of model parameters (Fig. 3).
+                                                                         LagerNVS is also efficient: encoding requires mere sec-
+                                                         Output       onds and decoding runs in real time (30FPS+) with up to
+ Images Cameras                                        Novel View     nine source images at 512×512 resolution on a single H100
+Figure 2. Method. The model takes any number of images and,           GPU. This is notable because the renderer/decoder is a stan-
+optionally, their camera parameters as input. A large network ini-    dard neural network which does not use explicit 3D repre-
+tialized from a reconstruction model [71] outputs an intermediate     sentations, custom kernels [38] or JIT compilation [2].
+feature representation with implicit 3D information. A lightweight       Like its peers, LagerNVS is trained using a regression
+network is queried on a target camera pose and renders a 512×512      loss, which tends to regress to the mean in the presence of
+image at more than 30 FPS on a single H100 GPU when provided          ambiguity, such as when rendering parts of the scene that
+with up to 9 input images.                                            are not visible in the source views. This calls for generative
+                                                                      models that can sample plausible views when information is
+shown that the network can output the new views directly.             missing. Motivated by this, we repurpose LagerNVS’s de-
+   However, foregoing 3D reconstruction does not mean                 coder for denoising diffusion [26], with promising results.
+that other 3D inductive biases are unimportant. We show                  To summarize, our contributions are as follows:
+this point by building a NVS network that, like SRT and               1. We show that reconstruction-free NVS still benefits from
+LVSM, bypasses explicit 3D reconstruction and directly                   strong 3D biases implicitly captured by features pre-
+renders the new views. However, we incorporate 3D-aware                  trained using explicit 3D supervision.
+features into it (Fig. 2) by initializing the model with the          2. We explore three NVS architectures, decoder-only, bot-
+weights of the VGGT [71] backbone. This way, we extract                  tleneck encoder-decoder, and highway encoder-decoder,
+features that, while not explicitly ‘3D’, were pre-trained us-           and show that the latter has the best rendering quality for
+ing explicit 3D supervision. We show that, compared to                   a given size of the renderer. Moreover, we propose a de-
+using strong but generic features like DinoV2 [50], using                coder design that enables real-time rendering on a single
+such 3D-aware features is highly beneficial for NVS.                     H100 with up to 9 source views at 512 × 512 resolution.
+   In general, feed-forward NVS architectures are relatively          3. We set the new SoTA for deterministic NVS, outper-
+unexplored. We thus compare several possible designs                     forming the prior SoTA, LVSM, by a solid +1.7dB mar-
+(Fig. 4). The simplest is a so-called decoder-only archi-                gin. We also outperform NVS models that do perform
+tecture that takes the source views and the target camera,               feed-forward 3D reconstruction, both with and without
+and outputs the target views [35]. This works well, but re-              source camera poses.
+evaluates the entire network for each new view generated.               We release several model checkpoints and code to repro-
+In contrast, encoder-decoder architectures [33, 35, 57] sep-          duce and further extend our results (see the project website).
+arate encoding from viewpoint-conditioned decoding. The               A model performance card is given in Tab. A1.
+encoder runs only once per scene, extracting a latent 3D
+representation of it, and only the decoder runs for each new
+                                                                      2. Related work
+view, which can be much more efficient. We further dis-
+tinguish ‘bottleneck’ encoder-decoders, where the latent to-          Encoder-decoder NVS with explicit 3D representations.
+kens are constrained to a fixed dimension before being de-            Many NVS methods are based on reconstructing the scene,
+coded [35], and ‘highway’ encoder-decoders, where the de-             extracting an explicit 3D representation of it. By explicit,
+coder can access all image features directly. We show that            we mean that the representation maps 3D locations to cor-
+the latter strikes an excellent quality and speed trade-off.          responding local properties like opacity and radiance. Neu-
+   Based on these insights, we build LagerNVS, a Latent               ral Radiance Fields [49] and 3D Gaussians [37] fit (encode)
+Geometry model for Real-time NVS (Fig. 1). LagerNVS                   explicit 3D scene representations to the source views via
+performs significantly better than LVSM, (+1.7dB PSNR                 optimization, which is slow and overfits unless hundreds
+margin on the standard RealEstate10k [93] benchmark), the             of views are given. Hence, authors have also proposed
+previous state-of-the-art in reconstruction-free NVS. It also         neural networks that can extract 3D representations in a
+outperforms feed-forward 3D reconstruction networks, in-              feed-forward manner, quickly and from only a few views.
+      Inputs                 Novel View Renders                          Inputs                   Novel View Renders
+ (a) internet photos (w/o camera poses)                             (c) 360∘ scenes
+
+
+
+
+ (b) embodied applications                                          (d) non-square aspect ratio
+
+
+
+
+Figure 3. Generalization. Our model generalizes to a wide range of input types and application scenarios, including (a) internet photos
+with unknown camera poses, (b) embodied applications, (c) 360◦ scenes and (d) non-square aspect ratios.
+
+Some output NeRFs [11, 43, 86] and others per-pixel 3D                view rendered and limiting rendering speed. LVSM [35]
+Gaussians [10, 12, 66, 67, 82, 85, 90, 94]. Many methods              also considers a variant that follows this paradigm.
+assume known source cameras, but others relax this con-
+                                                                      Generative NVS. NVS is ambiguous when the target cam-
+straint [27, 34, 63, 84, 85, 92], often by using pre-trained
+                                                                      era points at a part of the scene that is not represented in
+multi-view reconstruction models [19, 71, 73, 75]. We too
+                                                                      the source images. In such a case, a generative model that
+leverage such models, but use their latent feature represen-
+                                                                      can hallucinate plausible completions is required. Genera-
+tation instead of their explicit 3D outputs.
+                                                                      tive diffusion decoders were used both in decoder-only NVS
+Encoder-decoder NVS with latent 3D representations.                   methods [4, 5, 22, 29, 32, 42, 47, 58, 68, 77, 79], and in
+Other approaches extract a latent 3D representation of the            encoder-decoder methods [9, 13, 21, 24, 46, 53, 78, 87].
+scene that can be decoded directly into new views, but not            While we focus on deterministic NVS, we include a prelim-
+necessarily into explicit 3D properties. These representa-            inary experiment to demonstrate how our model can support
+tions can be viewed as an encoding of the scene’s light               diffusion-based generation too.
+field [1, 23], a concept associated with NVS [7]. Early
+neural approaches like LFN [62] used auto-decoding to fit             3. Method
+compact light field representations. SRT [57] later proposed
+                                                                      In Novel View Synthesis (NVS), we are given V source im-
+an encoder-decoder network to extract such representations
+                                                                      ages I1 , . . . , IV ∈ R3×H×W and the parameters g of a tar-
+in a feed-forward manner from source views. LVSM [35]
+                                                                      get camera, expressed with respect to the viewpoint of im-
+further improved this approach with increased decoder ca-
+                                                                      age I1 taken as reference. The goal is to output a new image
+pacity, while RayZer [33] enabled training without cam-
+                                                                      I ∈ R3×H×W captured by the target camera g, which we
+era labels for ordered image collections. Like LVSM, we
+                                                                      write as a function I = f (g; I1 , . . . , IV ). If the camera pa-
+too use a transformer-based architecture, but we (1) pro-
+                                                                      rameters g 1 , . . . , g V of the source images are also known,
+pose a different encoder information flow, and (2) leverage
+                                                                      then the function becomes I = f (g; I1 , g 1 , . . . , IV , g V ).
+a pre-trained 3D reconstruction network for our encoder.
+Both (1) and (2) substantially improve performance. Unlike                Following [71], we parameterize the cameras with 11-
+RayZer, we can operate on unordered image collections.                dimensional vectors as g = (q, t, k, w), where q ∈ S3 ,
+Concurrently to us, SVSM [39] analyzed the scaling laws               is the camera rotation (expressed as a unit quaternion), t ∈
+of encoder-decoder NVS transformers to maximize train-                R3 , is the camera translation, k ∈ R2+ are the horizontal and
+ing efficiency. We use a similar architecture, but instead            vertical fields-of-view (the optical center is assumed to be at
+of optimizing compute usage, we focus on the role of 3D               the image center). All g i are relative to the first camera g 1 .
+pre-training and on how it enables inference both with and            We also introduce an auxiliary input parameter w ∈ R2+ to
+without known cameras, with strong generalization.                    represent the scene scale, discussed in the supplement.
+                                                                          When f is implemented as a neural network, we call the
+Decoder-only NVS. Decoder-only methods directly map                   model decoder only if the whole network is evaluated for
+source images and a target camera to the target image with-           each new g. We call it an encoder-decoder if it first encodes
+out extracting a camera-independent intermediate represen-            the source images into an intermediate representation z in-
+tation, thus requiring the entire model to run for every new          dependently of the target camera, so that the NVS function
+Legend Highway enc.-dec.       Bottleneck enc.-dec.    Decoder-only          We call our model LagerNVS, and we implement its en-
+                                                                        coder by building on top of the VGGT model [71]. Recall
+Image
+                                                                        that VGGT is a feed-forward 3D reconstruction network
+  R
+Latent   Encoder                  Encoder                               that maps one or more images of a scene to a number of
+ Rep.                                                                   geometric quantities, including the camera g i and the depth
+           R                                R
+                                                                        map Di for each source image Ii . However, we do not make
+Latent
+ Rep.               Dec.                        Dec.       Dec.         use of these outputs directly. Instead, for each source image
+Source
+                                                                        Ii , we extract an array of tokens z i ∈ RP ×C from the last
+                                                                        layers of VGGT’s transformer backbone (before the decod-
+Target
+camera       Ours                      LVSM               LVSM          ing heads)—we extract the tokens output by the last local
+                                                                        attention layer and the last global attention layer, and re-
+Figure 4. Architectures. Our highway encoder-decoder (left)
+maximizes information flow from source images to the latent rep-
+                                                                        move the so-called camera tokens. We concatenate these
+resentation (R), making it more expressive than the bottleneck          two sets of tokens channel-wise, pass them through a lin-
+encoder-decoder (middle). Unlike decoder-only models (right),           ear layer to project them to the desired dimension C that
+our design allows scaling the encoder without slowing decoding.         our decoder expects, and normalize with LayerNorm [3] to
+                                                                        improve learning stability.
+f is the composition of an encoder e and a decoder h:                   Augmenting the encoder with camera inputs. In appli-
+                                                                        cations where the source cameras g 1 , . . . , g V are available,
+         z = e(I1 , g 1 , . . . , IV , g V ),   I = h(z; g).      (1)   we wish to pass them to the encoder too. Since VGGT does
+                                                                        not take cameras as input, we modify it by adding a 2-layer
+This allows us to amortize the cost of computing z across               Multi-Layer Perceptron (MLP) that projects the camera pa-
+the generation of multiple target views.                                rameters g to a 1024-dimensional token. When a camera is
+   We further distinguish “highway” and “bottleneck”                    not provided as input, we set g to the null vector (keeping
+encoder-decoders (Fig. 4). In highway encoder-decoders                  only the scene scale parameter w). We add the projected
+(named so to reflect non-attenuated information flow [65]),             tokens to the VGGT default initial values for the camera to-
+the representation z = (z 1 , . . . , z V ) contains separate fea-      kens, and then feed these to the VGGT feature backbone
+ture vectors for each source image, whereas in bottleneck               as usual. With these modifications, the encoder e is now a
+ones the number of tokens in z is independent of the num-               function of images and optional cameras.
+ber V of source views, thus constraining information flow.
+   While we are particularly interested in models where
+                                                                        3.2. An efficient decoder
+both the encoder e and the decoder h are neural networks,
+encoder-decoders can also be based on explicit 3D recon-                The decoder h(g; z 1 , . . . , z V ) takes as input the tokens z
+struction. In this case, z is a 3D representation such as 3D            output by the encoder (Sec. 3.1) and the target camera g.
+Gaussians, and h is the corresponding renderer.
+                                                                        Encoding the target camera. The goal of the decoder is
+3.1. An encoder with an implicit 3D bias                                to render the image from the viewpoint of the target camera
+                                                                        g, and we represent it densely in the form of a Plucker ray
+One obvious way to incorporate 3D inductive biases in the
+                                                                        map [89]. Hence, g is input to the decoder as a 6 × H × W
+model f is to opt for a reconstruction approach where z
+                                                                        image where each pixel contains its corresponding camera
+is an explicit 3D representation of the scene. A recent ex-
+                                                                        ray in Plucker coordinates, namely (rd , rm ) where rd ∈ R3
+ample is AnySplat [34], which builds on VGGT [71] for
+                                                                        is the ray direction and rm ∈ R3 is the ray moment. A
+its encoder and uses a Gaussian splat renderer for the de-
+                                                                        convolutional layer with kernel size and stride r′ = 8 is
+coder. Alternatively, both the encoder and decoder can be                                                             2
+                                                                        then applied to this image to extract HW/r′ tokens. Four
+neural networks, and the representation z can be a set of
+                                                                        additional register tokens [16] are concatenated to these. We
+features [33, 35, 57], avoiding explicit 3D reconstruction                                                                          2
+                                                                        use the symbol s to denote the resulting set of 4 + HW/r′
+and representations altogether. In this case, there are few
+                                                                        tokens encoding the target camera g.
+3D inductive biases, mostly limited to choosing an encoder
+for the camera parameters (e.g., ray maps).                             Decoder architecture. We design the decoder as a trans-
+    Here we explore a third approach (Fig. 2), where encoder            former network, where the dense camera tokens s attend the
+and decoder are neural networks, but the encoder is initial-            encoded source images z 1 , . . . , z V to form the target im-
+ized from a network pre-trained for 3D reconstruction via               age. We experiment with two variants (see Alg. 1 in the sup-
+explicit 3D supervision. In this way, there is no explicit 3D           plement) trading off quality and speed. The first variant has
+reconstruction, but the features z output from the encoder              complexity O(V 2 ) and uses full attention on the concate-
+are “3D-aware”.                                                         nation of target camera and scene tokens (s, z 1 , . . . , z V ),
+using them as queries, keys and values in the transformer:                    Method                           Batch   PSNR ↑   SSIM ↑   LPIPS ↓
+                                                                        (a)   LVSM [35] Enc-dec. bottleneck    64      28.32    0.888     0.117
+                                                                        (b)   LVSM [35] Decoder-only           64      28.89    0.894     0.108
+                 q = k = v = (s, z 1 , . . . , z V ).          (2)      (c)   Ours Enc-dec. highway— x-attn.   64      30.11    0.912     0.089
+                                                                        (d)   Ours Enc-dec. highway— full      64      30.48    0.918     0.086
+                                                                        (e)   LVSM [35] Enc-dec. bottleneck    512     28.58    0.893     0.114
+The second variant has complexity O(V ) and uses full at-               (f)   LVSM [35] Decoder-only           512     29.67    0.906     0.098
+tention on the target camera tokens s only, setting q = k =             (g)   Ours Enc-dec. highway— x-attn.   512     31.06    0.924     0.080
+                                                                        (h)   Ours Enc-dec. highway— full      512     31.39    0.928     0.078
+v = s, followed by cross attention between these and the
+scene tokens, with two layers that use respectively                   Table 1. Comparison to LVSM. Our model outperforms LVSM
+                                                                      (SoTA) both at small (batch size 64) and large (batch size 512)
+                                                                      training scales.
+          q1 = s;      k1 = v1 = (z 1 , . . . , z V ), and
+                                                               (3)
+          q2 = (z 1 , . . . , z V );   k2 = v2 = s
+                                                                      Optimization. We use AdamW optimizer and cosine
+                                                                      learning rate decay with linear warmup. We use QK-
+We otherwise use a standard transformer architecture (see
+                                                                      norm [25], and gradient clipping for improved training sta-
+Sec. 3.4 and the supplement). At the output, the register
+                                                                      bility, as well as gradient checkpointing for reduced mem-
+tokens are discarded, and the dense target camera tokens are
+                                                                      ory usage. Our main model is trained at 512 resolution
+projected with a linear layer to 8 × 8 patches and reshaped
+                                                                      (longer side) on the full dataset mix for 250k iterations with
+to the original image size to obtain the target image I.
+                                                                      batch size 512, but we adjust hyperparameters (e.g., batch
+                                                                      size, learning rate and training iterations) to the dataset and
+3.3. Training
+                                                                      baselines used in each experiment.
+We train our model by minimizing the NVS loss, i.e., the
+distance between ground truth novel views and the ones es-            4. Experiments
+timated by the model. In particular, we use a combination
+of mean-squared (L2) error and perceptual [36] losses, i.e.,          We begin by comparing LagerNVS to LVSM, the prior
+L = λ2 L2 + λp Lp .                                                   SoTA for NVS (Sec. 4.1), and by demonstrating the ben-
+                                                                      efits of training the model on a large number of different
+   Given that we start from a pre-trained VGGT model for
+                                                                      datasets (Sec. 4.2). Then, we study the importance of 3D-
+our encoder, we have a choice on whether to fine-tune the
+                                                                      aware pre-training and the choice of encoder-decoder archi-
+entire model end-to-end, or restrict learning to the new pa-
+                                                                      tecture (Sec. 4.3). We also show that our method, which
+rameters, most of which reside in the decoder. Empirically,
+                                                                      uses an implicit 3D representation, outperforms methods
+we found that fine-tuning the entire model is essential to
+                                                                      that reconstruct the 3D scene explicitly (Sec. 4.4). Finally,
+obtain good results. This is perhaps not surprising as the
+                                                                      we demonstrate how our model can be used in combination
+VGGT features were not trained with the goal of retaining
+                                                                      with diffusion models (Sec. 4.5).
+the appearance of the source images or with the capability
+                                                                          We assess LagerNVS in terms of its ability to deliver
+to understand camera pose conditioning.
+                                                                      high-quality NVS for a given complexity of the decoder, as
+Data. To train our model, we thus require a collection                the latter ultimately determines the rendering speed, which
+of tuples (I, g, I1 , g 1 , . . . , IV , g V ), consisting of posed   we aim to maintain in the real-time range. In all com-
+images of approximately static 3D scenes. Inspired by                 parisons we thus treat the number of decoder transformer
+VGGT, we train on a rich mix of 13 multi-view datasets                blocks as a control variable. We describe the most impor-
+(see supplement), including typical NVS datasets such as              tant experimental parameters and results here, and refer the
+RealEstate10k [93], DL3DV [45], WildRGBD [80]. Our                    reader to the supplement for details.
+full dataset roughly matches the size and diversity of the
+                                                                      Evaluation datasets. We test our method on 3
+data used for VGGT.
+                                                                      datasets commonly used for Novel View Synthesis:
+                                                                      RealEstate10k [93], DL3DV [45], and CO3D [52]. We
+3.4. Implementation details                                           adapt the training and testing setup to match that of our
+Architecture. We use the pre-trained VGGT model for our               baselines, and include more details in each sub-section.
+encoder and start from its pre-trained weights. We use a              Metrics. On all quantitative tasks we use standard metrics:
+ViT-B [18] transformer for our decoder with FlashAtten-               Peak Signal-to-Noise Ratio (PSNR), Structural Image Sim-
+tion [14, 15, 61] attention kernels.                                  ilarity (SSIM [76]), and Perceptual Similarity (LPIPS [91]).
+Augmentations. We train our model to be robust to the
+inputs to the model: we randomly sample the number of
+                                                                      4.1. Comparison to the state-of-the-art in NVS
+source views, varying between 1 and 10, selectively drop              We first evaluate the ability of LagerNVS to deliver SoTA
+out camera tokens and vary the aspect ratio.                          NVS (Fig. 5 and Tab. 1). The SoTA is LVSM, which, like
+ Inputs       LVSM               Ours              GT                    Input           Novel View               Input        Novel View
+
+
+
+
+                                                                 Figure 6. Single-view NVS is supported for small camera motion
+Figure 5. Comparison to LVSM. Our model estimates geometry       with LagerNVS.
+better than LVSM in regions where 2D matching is challenging
+(top). It also uses monocular cues better for depth (bottom).    Fig. 3. It also supports single-view NVS, as shown in Fig. 6.
+                                                                 Table A1 in the supplement provides a detailed quantitative
+us, uses a latent 3D representation. We follow LVSM’s eval-      evaluation of this model on a number of standard bench-
+uation protocol and train and test on RealEstate10k [93]         marks.
+with V = 2 source views. The data contains 65k video
+clips of indoor scenes. We use the same 256 × 256 resolu-        4.3. Analysis and ablations
+tion, training steps (100,000), and batch size as LVSM, as       We assess the importance of 3D pre-training of the encoder
+well as the source and target views in pixelSplat [10].          features and architectural design choices via ablations.
+Results. We test the LVSM bottleneck encoder-decoder             Experimental protocol. As in Sec. 4.2, we train models on
+(Tab. 1 (a), (e)) and decoder-only (Tab. 1 (b), (f)) variants.   all datasets of Sec. 3.3. We report results in the 2-view set-
+The LVSM authors trained their model using batch size 512        ting with known cameras on the DL3DV split set by Depth-
+(Tab. 1 (e-h)) and 64 (Tab. 1 (a-d)) to simulate resource-       Splat with 256 × 256 center-crops, taking care to remove
+constrained training. We report scores for both settings, and    source views from the target view set. We use the VGGT
+with the full and cross-attention variants of our model.         architecture as the encoder backbone. We modify the train-
+   The LVSM authors noted that their decoder-only mod-           ing hyperparameters compared to the main model, includ-
+els are better than their bottleneck encoder-decoder ones,       ing batch size and training iterations, to reduce computa-
+which they attribute to the model architecture. However,         tion (see supp.). In the bottleneck variant, the global and
+encoder-decoder architectures can amortize the encoding          local aggregator blocks process additional 3072 bottleneck
+cost, thus benefiting from more lightweight decoders and         tokens (following [35]).
+consequently faster rendering. It is thus notable that our
+highway encoder-decoder is significantly better than both        Importance of using pre-trained 3D-aware features. Ta-
+LVSM variants in both settings (up to +1.7dB PSNR; Tab. 1        ble 2 shows that initializing the model from VGGT (row (a))
+(c, d), (f, g)). Figure 5 indicates that our model benefits      is much better (+2.9dB PSNR) than starting from scratch
+from improved multi-view matching and monocular depth            (row (e)). Using generic 2D-pretraining (DinoV2 [50] in
+estimation. As we further analyze in Sec. 4.3, this is due       row (f)) is also marginally better, but not nearly as much as
+to a combination of factors, including using pre-trained 3D-
+aware features and not having an encoding bottleneck.                     Encoder        E2E   X-attn   Pre-Tr.    PSNR ↑   SSIM ↑   LPIPS ↓
+
+                                                                   (a)    Highway        ✓     ✓        3D          21.02   0.652     0.257
+4.2. Generalizable NVS                                             (b)    Highway        ✓     ✗        3D          21.30   0.667     0.248
+                                                                   (c)    Decoder only   ✓     ✗        —           18.39   0.533     0.407
+While training on a single dataset like Re10k is common            (d)    Bottleneck     ✓     ✗        —           17.53   0.480     0.461
+practice in many NVS works [10, 12, 35, 90], multi-view            (e)    Highway        ✓     ✓        —           18.03   0.551     0.405
+geometry models [41, 71, 73] have shown the benefits of            (f)    Highway        ✓     ✓        2D          18.17   0.515     0.388
+                                                                   (g)    Highway        ✗     ✓        3D          19.01   0.553     0.334
+training on large collections of data, particularly for zero-
+shot generalization. Here, we look into this setup as well.      Table 2. Ablations. Even when handicapped by using faster cross-
+    Our full model, trained as described in Sec. 3.4 on all      attention, our highway encoder-decoder model outperforms the
+the datasets of Sec. 3.3, achieves excellent generalization      decoder-only and bottleneck encoder-decoder variants, which are
+                                                                 analogous to the models introduced by LVSM [35]. Using 3D-
+to in-the-wild data and different scene types, and can work
+                                                                 aware pre-training (Pre-tr.) is crucial, but only effective if the fea-
+without knowledge of the source camera poses, as shown in        tures are fine-tuned end-to-end (“E2E”).
+                         Ours          Decoder-only   Bottleneck   Ground Truth                     Method            Test data      PSNR ↑   SSIM ↑   LPIPS ↓
+
+
+
+
+                                                                                   single dataset
+                                                                                                    DepthSplat [82]   DL3DV 4-view   22.30    0.765     0.189
+
+
+
+
+                                                                                     w cameras
+                                                                                                    Ours                             27.56    0.869     0.095
+                                                                                                    DepthSplat [82]   DL3DV 6-view   23.47    0.812     0.154
+(1) Architecture
+
+
+
+
+                                                                                                    Ours                             29.45    0.904     0.068
+
+                                                                                                    AnySplat [34]     Re10k 2-view   17.05    0.626     0.349
+
+
+
+
+                                                                                    generalizable
+                                                                                                    Flare [92]                       23.77    0.801     0.191
+
+
+
+
+                                                                                    w/o cameras
+                                                                                                    NopoSplat [84]                   24.06    0.820     0.178
+                                                                                                    Ours                             26.07    0.846     0.151
+                                                                                                    AnySplat [34]     CO3D 9-view    15.87    0.526     0.423
+                                                                                                    Ours                             22.37    0.697     0.352
+
+                                                                                  Table 3. Feed-forward 3DGS comparison. Our model out-
+                   3D pre-tr. (Ours)    2D pre-tr.    No pre-tr.   Ground Truth
+                                                                                  performs state-of-the-art feed-forward 3DGS models across the
+                                                                                  board, both with and without input camera poses available, illus-
+                                                                                  trating the strength of latent 3D representations. NoPoSplat only
+                                                                                  trained on RealEstate10k (a potentially unfair comparison), but we
+(2) Pre-training
+
+
+
+
+                                                                                  include it here for completeness.
+
+                                                                                  3D-aware features (VGGT), and, by offloading much of the
+                                                                                  computation that is independent of the target view to the
+                                                                                  encoder, has more capacity to learn a high-quality decoder
+                                                                                  (for a fixed decoding budget, which is our control variable).
+                     E2E (Ours)        Frozen VGGT    E2E (Ours)   Frozen VGGT       The bottleneck model’s unique advantage is that the de-
+                                                                                  coding speed is independent of the number of source views.
+(3) E2E train.
+
+
+
+
+                                                                                  Even so, the cross-attention variant of the highway architec-
+                                                                                  ture still allows real-time rendering (56–30 FPS) with 1–9
+                                                                                  source views.
+                                                                                  Full vs cross-attention. Using full attention (Tab. 2 row
+Figure 7. Ablations. Our architecture (1), pre-training (2) and                   (a)) performs slightly better than cross-attention (row (b)),
+end-to-end training (3) result in the best NVS quality.                           but is slower: the maximum number of source images for
+                                                                                  real-time (30FPS+) rendering is 9 for the cross-attention
+using 3D pre-training. Figure 7 shows that 3D pre-training                        variant, and 6 for the full attention variant (see Tab. A3
+improves especially the foreground objects, which benefit                         in the supplement), due to the fact that the complexity in-
+from better depth estimation.                                                     creases from O(V ) to O(V 2 ) in the number V of source
+    Another important finding is that it is necessary to fine-                    views.
+tune the entire model end-to-end (E2E) to obtain good per-
+formance, unfreezing the VGGT backbone (rows (a) vs (g)).                         4.4. NVS with Explicit 3D Representations
+This is because VGGT is pre-trained to reconstruct only the                       Most NVS methods reconstruct the scene, extracting an ex-
+geometry and thus to treat appearance attributes like colors,                     plicit 3D representation of it, which also provides a strong
+reflectance and transparency, which are important for NVS,                        3D inductive bias. In this section, we show that our latent
+as nuances. The results in Fig. 7 corroborate this hypothesis                     3D representation performs better than these solutions.
+by showing that using a frozen backbone results in a lack of
+reflections and poor textures. Freezing VGGT also makes it                        Baselines and evaluation protocols. First, we consider
+harder for the model to learn to understand the source cam-                       the case where the source views come with known cam-
+eras (Sec. 3.1) when these are given.                                             era poses. We evaluate our method against DepthSplat,
+                                                                                  which uses explicit 3D priors in the form of pre-trained
+    Future versions of VGGT and similar reconstruction
+                                                                                  monocular depth features, cost volume matching and an ex-
+models should consider including a rendering head and loss
+                                                                                  plicit 3D representation. We use their train and test data
+during training to preserve appearance information and thus
+                                                                                  (DL3DV) and their 4-view and 6-view splits (while tak-
+be more useful for tasks like NVS.
+                                                                                  ing care to remove source images from evaluation targets)
+Decoder-only vs bottleneck/highway encoder-decoder.                               with 256 × 256 center-crops. Second, we consider the case
+As in Sec. 4.1, the decoder-only model (Tab. 2 row (c))                           where the source cameras are unknown and compare against
+outperforms the bottleneck encoder-decoder (row (d)), but                         Flare [92] and AnySplat [34], which were also trained on
+our highway encoder-decoder is better than both (row (a)).                        a large, diverse dataset. Following standard practice, we
+The latter has no bottleneck, can leverage the pre-trained                        evaluate on 2-view RealEstate10k with the split from [84]
+                       Baseline   Ours          Ground Truth                           Inputs   Input cameras   Ours regression Ours + diffusion   GT
+
+
+
+
+                                                                       Occlusion
+6 views with cameras
+    vs DepthSplat
+
+
+
+
+                                                                       Extrapolation
+                                                                        Figure 9. Diffusion. Our decoder can be fine-tuned with a diffu-
+                                                                        sion objective, enabling hallucination of unobserved regions.
+
+                                                                        to some extent, ‘imagine’ simple regions, such as the floor
+                                                                        (rows 3 and 4 in Fig. 8, more examples in supp.).
+9 views w/o cameras
+
+
+
+
+                                                                        4.5. Generative NVS
+    vs AnySplat
+
+
+
+
+                                                                        While our model, trained as a deterministic regressor, is ca-
+                                                                        pable of simple infilling, high-quality hallucination of un-
+                                                                        observed regions requires a generative model. LagerNVS
+                                                                        can be adapted to become one, by fine-tuning it to operate
+                                                                        as a diffusion model. In order to do so, we keep the encoder
+                                                                        unmodified and frozen, and fine-tune the decoder with a de-
+                                                                        noising diffusion objective. The decoder is minimally mod-
+                                                                        ified and fine-tuned: we allow the input layer to accept ad-
+                                                                        ditional channels corresponding to the noisy image, and add
+Figure 8. Comparison to feed-forward 3DGS. Our model better
+                                                                        adaLN-zero [51] conditioning on the denoising timestep.
+handles thin parts, reflections, and occlusions, and supports infer-
+ence with and without source camera poses.                                  In Fig. 9 we demonstrate two scenarios where this for-
+                                                                        mulation is better than the deterministic one: (1) occlusion
+                                                                        and (2) extrapolation. In these cases, deterministic mod-
+at 256 × 256. Like Flare, we use the subset of that split               els like ours and LVSM regress to the mean and produce
+with low- and medium-overlap scenes. AnySplat uses pre-                 blurry outputs, whereas the diffusion variant can halluci-
+trained VGGT features, like us. We further test the latter on           nate plausible completions. Remarkably, our pre-trained
+the more challenging CO3D [52] 360◦ captures, using the                 model learns diffusion very quickly, after fine-tuning for
+9-view split from [78] at 512 × 512 resolution.                         just 60k iterations, operating in pixel space (without latent
+                                                                        diffusion [55]) and using only 12 transformer blocks.
+Results. As shown in Tab. 3, we outperform all methods
+across the board, often by a significant margin. Figure 8
+shows that our implicit representation better captures reflec-          5. Conclusion
+tive surfaces and thin structures. Note that 3DGS should                We showed the benefits of leveraging strong 3D inductive
+have no problem representing such elements, but it is evi-              biases even in NVS models that do not use explicit 3D
+dently difficult to learn a feed-forward model that predicts            representations. We have done so by building our model,
+them accurately.                                                        LagerNVS, from a strong pre-trained 3D reconstruction net-
+    An even larger difference can be observed in comparison             work. The resulting model achieves state-of-the-art NVS
+on CO3D in Tab. 3. Figure 8 shows this can be attributed                results when compared to implicit feed-forward NVS mod-
+to the fact that pixel-aligned Gaussian methods completely              els, as well as models that do extract a 3DGS representation
+fail in areas that are not visible in any source view—even              of the scene. Furthermore, our lightweight decoder allows
+with 9 views there are significant occlusions, which are                us to render new views at 512 × 512 in real time on a single
+clearly visible (third row of Fig. 8). Occlusion coverage               GPU. Our model is robust, efficient, generalizes well, and
+is possible with feed-forward 3DGS [66, 67], but AnySplat               requires no camera poses, which makes it practical. While
+and Flare force Gaussian-ray alignment—this makes the ob-               we have focused on deterministic NVS, experiments show
+served content sharper (notice their competitive LPIPS) but             that the model can be applied to generative NVS as well,
+prevents infilling occluded areas. In contrast, even though             with further benefits. We share the code and model check-
+our decoder is limited by its deterministic nature, it can,             points for the benefit of the open-source community.
+Acknowledgments We thank Thu Nguyen-Phuoc, Roman                     [12] Yuedong Chen, Haofei Xu, Chuanxia Zheng, Bohan Zhuang,
+Shapovalov, Antoine Toisoul and Zihang Lai for fruitful                   Marc Pollefeys, Andreas Geiger, Tat-Jen Cham, and Jianfei
+discussions, David Charatan for assistance with data and                  Cai. MVSplat: efficient 3D gaussian splatting from sparse
+Shanghzhan Zhang for confirming evaluation details. This                  multi-view images. arXiv, 2403.14627, 2024. 1, 3, 6
+work was done while S. Szymanowicz and M. Chen were                  [13] Yuedong Chen, Chuanxia Zheng, Haofei Xu, Bohan Zhuang,
+interns at Meta. S. Szymanowicz is supported by the                       Andrea Vedaldi, Tat-Jen Cham, and Jianfei Cai. MVS-
+                                                                          plat360: Feed-forward 360 Scene Synthesis from Sparse
+EPSRC Doctoral Training Partnerships Scholarship (DTP)
+                                                                          Views. NeurIPS, 2024. 1, 3
+EP/R513295/1 and the Oxford-Ashton Scholarship.
+                                                                     [14] Tri Dao. FlashAttention-2: Faster attention with better par-
+                                                                          allelism and work partitioning. In ICLR, 2024. 5
+References
+                                                                     [15] Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, and
+ [1] E. Adelson and R. Bergen. The Plenoptic Function and the             Christopher Ré. FlashAttention: Fast and memory-efficient
+     Elements of Early Vision. MIT Press, 1991. 3                         exact attention with IO-awareness. In NeurIPS, 2022. 5
+ [2] Jason Ansel, Edward Yang, Horace He, et al. PyTorch 2:          [16] Timothée Darcet, Maxime Oquab, Julien Mairal, and Piotr
+     Faster machine learning through dynamic Python bytecode              Bojanowski. Vision transformers need registers. Proc. ICLR,
+     transformation and graph compilation. In Proceedings of the          2024. 4
+     29th ACM International Conference on Architectural Sup-         [17] Jimmy Ba Diederik P. Kingma. Adam: A method for
+     port for Programming Languages and Operating Systems                 stochastic optimization. ICLR, 2015. 17
+     (ASPLOS), 2024. 2                                               [18] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov,
+ [3] Lei Jimmy Ba, Jamie Ryan Kiros, and Geoffrey E. Hinton.              Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner,
+     Layer normalization. arXiv.cs, abs/1607.06450, 2016. 4, 15           Mostafa Dehghani, Matthias Minderer, Georg Heigold, Syl-
+ [4] Sherwin Bahmani, Tianchang Shen, Jiawei Ren, Jiahui                  vain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is
+     Huang, Yifeng Jiang, Haithem Turki, Andrea Tagliasacchi,             worth 16×16 words: Transformers for image recognition at
+     David B. Lindell, Zan Gojcic, Sanja Fidler, Huan Ling, Jun           scale. In Proc. ICLR, 2021. 5, 15, 16
+     Gao, and Xuanchi Ren. Lyra: Generative 3D scene recon-          [19] Bardienus Duisterhof, Lojze Zust, Philippe Weinzaepfel,
+     struction via video diffusion model self-distillation. arXiv,        Vincent Leroy, Yohann Cabon, and Jerome Revaud.
+     2509.19296, 2025. 3                                                  MASt3R-SfM: a fully-integrated solution for unconstrained
+ [5] Jianhong Bai, Menghan Xia, Xiao Fu, Xintao Wang, Lianrui             structure-from-motion. arXiv, 2409.19152, 2024. 3
+     Mu, Jinwen Cao, Zuozhu Liu, Haoji Hu, Xiang Bai, Pengfei
+                                                                     [20] Stefan Elfwing, Eiji Uchibe, and Kenji Doya. Sigmoid-
+     Wan, and Di Zhang. ReCamMaster: camera-controlled gen-
+                                                                          weighted linear units for neural network function approxima-
+     erative rendering from a single video. In Proc. ICCV, 2025.
+                                                                          tion in reinforcement learning. Neural Networks, 107, 2018.
+     3
+                                                                          15
+ [6] Gilad Baruch, Zhuoyuan Chen, Afshin Dehghan, Tal Dimry,
+                                                                     [21] Tobias Fischer, Samuel Rota Bulò, Yung-Hsu Yang,
+     Yuri Feigin, Peter Fu, Thomas Gebauer, Brandon Joffe,
+                                                                          Nikhil Varma Keetha, Lorenzo Porzi, Norman Müller,
+     Daniel Kurz, Arik Schwartz, and Elad Shulman. ARK-
+                                                                          Katja Schwarz, Jonathon Luiten, Marc Pollefeys, and Peter
+     itscenes - a diverse real-world dataset for 3d indoor scene
+                                                                          Kontschieder. FlowR: flowing from sparse to dense 3d re-
+     understanding using mobile RGB-d data. NeurIPS, 2021. 16
+                                                                          constructions. arXiv, 2504.01647, 2025. 3
+ [7] Chris Buehler, Michael Bosse, Leonard McMillan, Steven J.
+                                                                     [22] Ruiqi Gao, Aleksander Holynski, Philipp Henzler, Arthur
+     Gortler, and Michael F. Cohen. Unstructured lumigraph ren-
+                                                                          Brussee, Ricardo Martin-Brualla, Pratul Srinivasan,
+     dering. In Proc. SIGGRAPH, 2001. 3
+                                                                          Jonathan T. Barron, and Ben Poole. CAT3D: create anything
+ [8] Eric R. Chan, Koki Nagano, Matthew A. Chan, Alexan-
+                                                                          in 3d with multi-view diffusion models. arXiv, 2405.10314,
+     der W. Bergman, Jeong Joon Park, Axel Levy, Miika Ait-
+                                                                          2024. 3
+     tala, Shalini De Mello, Tero Karras, and Gordon Wetzstein.
+     GeNVS: Generative Novel View Synthesis with 3D-Aware            [23] Steven J. Gortler, Radek Grzeszczuk, Richard Szeliski, and
+     Diffusion Models. ICCV, 2023. 15                                     Michael F. Cohen. The lumigraph. In Proc. SIGGRAPH,
+ [9] Eric R. Chan, Koki Nagano, Matthew A. Chan, Alexan-                  1996. 3
+     der W. Bergman, Jeong Joon Park, Axel Levy, Miika Aittala,      [24] Jiatao Gu, Alex Trevithick, Kai-En Lin, Josh M. Susskind,
+     Shalini De Mello, Tero Karras, and Gordon Wetzstein. Gen-            Christian Theobalt, Lingjie Liu, and Ravi Ramamoorthi.
+     erative novel view synthesis with 3D-aware diffusion mod-            NerfDiff: Single-image view synthesis with nerf-guided dis-
+     els. In Proc. ICCV, 2023. 3                                          tillation from 3D-aware diffusion. arXiv.cs, abs/2302.10109,
+[10] David Charatan, Sizhe Li, Andrea Tagliasacchi, and Vincent           2023. 3
+     Sitzmann. pixelSplat: 3D Gaussian splats from image pairs       [25] Alex Henry, Prudhvi Raj Dachapally, Shubham Pawar, and
+     for scalable generalizable 3D reconstruction. In Proc. CVPR,         Yuxuan Chen. Query-key normalization for transformers.
+     2024. 1, 3, 6, 13                                                    arXiv, 2020. 5
+[11] Anpei Chen, Zexiang Xu, Fuqiang Zhao, Xiaoshuai Zhang,          [26] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffu-
+     Fanbo Xiang, Jingyi Yu, and Hao Su. MVSNeRF: Fast                    sion probabilistic models. In Proc. NeurIPS, 2020. 2
+     generalizable radiance field reconstruction from multi-view     [27] Sunghwan Hong, Jaewoo Jung, Heeseong Shin, Jiaolong
+     stereo. In Proc. ICCV, 2021. 3                                       Yang, Seungryong Kim, and Chong Luo. Unifying corre-
+     spondence, pose and nerf for generalized pose-free novel       [43] Kai-En Lin, Yen-Chen Lin, Wei-Sheng Lai, Tsung-Yi Lin,
+     view synthesis. CVPR, 2024. 3                                       Yi-Chang Shih, and Ravi Ramamoorthi. Vision transformer
+[28] Emiel Hoogeboom, Jonathan Heek, and Tim Salimans. sim-              for nerf-based view synthesis from a single input image. In
+     ple diffusion: End-to-end diffusion for high resolution im-         Proc. WACV, 2023. 3
+     ages. In ICML, 2023. 15                                        [44] Shanchuan Lin, Bingchen Liu, Jiashi Li, and Xiao Yang.
+[29] Basile Van Hoorick, Rundi Wu, Ege Ozguroglu, Kyle Sar-              Common Diffusion Noise Schedules and Sample Steps are
+     gent, Ruoshi Liu, Pavel Tokmakov, Achal Dave, Changxi               Flawed. In WACV, 2024. 15
+     Zheng, and Carl Vondrick. Generative camera dolly: Ex-         [45] Lu Ling, Yichen Sheng, Zhi Tu, Wentian Zhao, Cheng
+     treme monocular dynamic novel view synthesis. arXiv,                Xin, Kun Wan, Lantao Yu, Qianyu Guo, Zixun Yu, Yawen
+     2405.14868, 2024. 3                                                 Lu, Xuanmao Li, Xingpeng Sun, Rohan Ashok, Aniruddha
+[30] Po-Han Huang, Kevin Matzen, Johannes Kopf, Narendra                 Mukherjee, Hao Kang, Xiangrui Kong, Gang Hua, Tianyi
+     Ahuja, and Jia-Bin Huang. DeepMVS: Learning multi-view              Zhang, Bedrich Benes, and Aniket Bera. DL3DV-10K: a
+     stereopsis. In Proc. CVPR, 2018. 16                                 large-scale scene dataset for deep learning-based 3d vision.
+[31] Tooba Imtiaz, Lucy Chai, Kathryn Heal, Xuan Luo,                    In Proc. CVPR, 2024. 5
+     Jungyeon Park, Jennifer Dy, and John Flynn. LVT: large-        [46] Fangfu Liu, Wenqiang Sun, Hanyang Wang, Yikai Wang,
+     scale scene reconstruction via local view transformers.             Haowen Sun, Junliang Ye, Jun Zhang, and Yueqi Duan. Re-
+     arXiv, 2509.25001, 2025. 1                                          conX: reconstruct any scene from sparse views with video
+[32] Jensen, Zhou, Hang Gao, Vikram Voleti, Aaryaman Vasishta,           diffusion model. arXiv, 2408.16767, 2024. 3
+     Chun-Han Yao, Mark Boss, Philip Torr, Christian Rupprecht,     [47] Ruoshi Liu, Rundi Wu, Basile Van Hoorick, Pavel Tok-
+     and Varun Jampani. Stable virtual camera: Generative view           makov, Sergey Zakharov, and Carl Vondrick. Zero-1-to-3:
+     synthesis with diffusion models. arXiv, 2503.14489, 2025. 3         Zero-shot one image to 3D object. In Proc. ICCV, 2023. 3
+[33] Hanwen Jiang, Hao Tan, Peng Wang, Haian Jin, Yue Zhao,         [48] Xingchen Liu, Piyush Tayal, Jianyuan Wang, Jesus Zarzar,
+     Sai Bi, Kai Zhang, Fujun Luan, Kalyan Sunkavalli, Qixing            Tom Monnier, Konstantinos Tertikas, Jiali Duan, Antoine
+     Huang, and Georgios Pavlakos. RayZer: a self-supervised             Toisoul, Jason Y. Zhang, Natalia Neverova, Andrea Vedaldi,
+     large view synthesis model. In Proc. ICCV, 2025. 1, 2, 3, 4,        Roman Shapovalov, and David Novotny. uCO3D uncom-
+     13, 14                                                              mon objects in 3D. In Proceedings of the IEEE Conference
+[34] Lihan Jiang, Yucheng Mao, Linning Xu, Tao Lu, Kerui Ren,            on Computer Vision and Pattern Recognition (CVPR), 2025.
+     Yichen Jin, Xudong Xu, Mulin Yu, Jiangmiao Pang, Feng               16
+     Zhao, Dahua Lin, and Bo Dai. AnySplat: feed-forward            [49] Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik,
+     3D Gaussian Splatting from unconstrained views. arXiv,              Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng. NeRF:
+     2505.23716, 2025. 1, 2, 3, 4, 7                                     Representing scenes as neural radiance fields for view syn-
+[35] Haian Jin, Hanwen Jiang, Hao Tan, Kai Zhang, Sai Bi,                thesis. In Proc. ECCV, 2020. 1, 2
+     Tianyuan Zhang, Fujun Luan, Noah Snavely, and Zexiang          [50] Maxime Oquab, Timothée Darcet, Théo Moutakanni, Huy V.
+     Xu. LVSM: a large view synthesis model with minimal 3D              Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez,
+     inductive bias. In Proc. ICLR, 2025. 1, 2, 3, 4, 5, 6, 15           Daniel HAZIZA, Francisco Massa, Alaaeldin El-Nouby,
+[36] Justin Johnson, Alexandre Alahi, and Li Fei-Fei. Perceptual         Mido Assran, Nicolas Ballas, Wojciech Galuba, Russell
+     losses for real-time style transfer and super-resolution. In        Howes, Po-Yao Huang, Shang-Wen Li, Ishan Misra, Michael
+     Proc. ECCV, 2016. 5, 15                                             Rabbat, Vasu Sharma, Gabriel Synnaeve, Hu Xu, Herve Je-
+[37] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler,               gou, Julien Mairal, Patrick Labatut, Armand Joulin, and Pi-
+     and George Drettakis. 3D Gaussian Splatting for real-time           otr Bojanowski. DINOv2: Learning robust visual features
+     radiance field rendering. Proc. SIGGRAPH, 42(4), 2023. 1,           without supervision. Transactions on Machine Learning Re-
+     2                                                                   search, 2024. 2, 6
+[38] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler,          [51] William Peebles and Saining Xie. Scalable diffusion models
+     and George Drettakis. 3D Gaussian Splatting for Real-Time           with transformers. In Proc. ICCV, 2023. 8, 14
+     Radiance Field Rendering. ACM Trans. on Graphics (TOG),        [52] Jeremy Reizenstein, Roman Shapovalov, Philipp Henzler,
+     2023. 2                                                             Luca Sbordone, Patrick Labatut, and David Novotny. Com-
+[39] Evan Kim, Hyunwoo Ryu, Thomas W. Mitchel, and Vincent               mon objects in 3d: Large-scale learning and evaluation of
+     Sitzmann. Scaling view synthesis transformers. 2026. 3, 13          real-life 3d category reconstruction. ICCV, 2021. 5, 8
+[40] Hoang-An Le, Partha Das, Thomas Mensink, Sezer                 [53] Xuanchi Ren, Tianchang Shen, Jiahui Huang, Huan Ling,
+     Karaoglu, and Theo Gevers. EDEN: Multimodal Synthetic               Yifan Lu, Merlin Nimier-David, Thomas Müller, Alexander
+     Dataset of Enclosed garDEN Scenes. 2021. 16                         Keller, Sanja Fidler, and Jun Gao. GEN3C: 3D-informed
+[41] Vincent Leroy, Yohann Cabon, and Jérôme Revaud. Ground-           world-consistent video generation with precise camera con-
+     ing Image Matching in 3D with MAST3R. ECCV, 2024. 6                 trol. arXiv, 2503.03751, 2025. 3
+[42] Hanwen Liang, Junli Cao, Vidit Goel, Guocheng Qian,            [54] Mike Roberts, Jason Ramapuram, Anurag Ranjan, Atulit
+     Sergei Korolev, Demetri Terzopoulos, Konstantinos N. Pla-           Kumar, Miguel Angel Bautista, Nathan Paczan, Russ Webb,
+     taniotis, Sergey Tulyakov, and Jian Ren. Wonderland: Nav-           and Joshua M. Susskind. Hypersim: A photorealistic syn-
+     igating 3D scenes from a single image. arXiv, 2412.12091,           thetic dataset for holistic indoor scene understanding. In
+     2024. 3                                                             Proc. ICCV, 2021. 16
+[55] Robin Rombach, Andreas Blattmann, Dominik Lorenz,                [68] Stanislaw Szymanowicz, Jason Y. Zhang, Pratul Srini-
+     Patrick Esser, and Björn Ommer. High-resolution image syn-           vasan, Ruiqi Gao, Arthur Brussee, Aleksander Holynski, Ri-
+     thesis with latent diffusion models. In Proc. CVPR, 2022. 8,          cardo Martin-Brualla, Jonathan T. Barron, and Philipp Hen-
+     16                                                                    zler. Bolt3D: Generating 3D scenes in seconds. arXiv,
+[56] Mehdi S. M. Sajjadi, Henning Meyer, Etienne Pot, Urs                  2503.14445, 2025. 3
+     Bergmann, Klaus Greff, Noha Radwan, Suhani Vora,                 [69] Bill Triggs. Camera pose and calibration from 4 or 5 known
+     Mario Lucic, Daniel Duckworth, Alexey Dosovitskiy, Jakob              3D points. In Proc. ICCV, 1999. 18
+     Uszkoreit, Thomas A. Funkhouser, and Andrea Tagliasacchi.        [70] Suhani Vora, Noha Radwan, Klaus Greff, Henning Meyer,
+     Scene representation transformer: Geometry-free novel view            Kyle Genova, Mehdi S. M. Sajjadi, Etienne Pot, Andrea
+     synthesis through set-latent scene representations. CoRR,             Tagliasacchi, and Daniel Duckworth. NeSF: Neural semantic
+     abs/2111.13152, 2021. 1                                               fields for generalizable semantic segmentation of 3D scenes.
+[57] Mehdi S. M. Sajjadi, Henning Meyer, Etienne Pot, Urs                  arXiv.cs, abs/2111.13260, 2021. 16
+     Bergmann, Klaus Greff, Noha Radwan, Suhani Vora,                 [71] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea
+     Mario Lucic, Daniel Duckworth, Alexey Dosovitskiy, Jakob              Vedaldi, Christian Rupprecht, and David Novotny. Vggt: Vi-
+     Uszkoreit, Thomas Funkhouser, and Andrea Tagliasacchi.                sual geometry grounded transformer. In CVPR, 2025. 2, 3,
+     Scene representation transformer: Geometry-free novel view            4, 6
+     synthesis through set-latent scene representations. CVPR,        [72] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea
+     2022. 2, 3, 4                                                         Vedaldi, Christian Rupprecht, and David Novotny. VGGT:
+[58] Kyle Sargent, Zizhang Li, Tanmay Shah, Charles Herrmann,              Visual geometry grounded transformer. In Proceedings of the
+     Hong-Xing Yu, Yunzhi Zhang, Eric Ryan Chan, Dmitry La-                IEEE Conference on Computer Vision and Pattern Recogni-
+     gun, Li Fei-Fei, Deqing Sun, and Jiajun Wu. ZeroNVS:                  tion (CVPR), 2025. 15, 16
+     Zero-shot 360-degree view synthesis from a single real im-       [73] Shuzhe Wang, Vincent Leroy, Yohann Cabon, Boris
+     age. arXiv.cs, abs/2310.17994, 2023. 3                                Chidlovskii, and Jerome Revaud. DUSt3R: Geometric 3D
+[59] Johannes Lutz Schönberger and Jan-Michael Frahm.                     vision made easy. In Proc. CVPR, 2024. 3, 6
+     Structure-from-motion revisited. 2016. 16                        [74] Wenshan Wang, Delong Zhu, Xiangwei Wang, Yaoyu Hu,
+[60] Philipp Schröppel, Jan Bechtold, Artemij Amiranashvili, and          Yuheng Qiu, Chen Wang, Yafei Hu, Ashish Kapoor, and Se-
+     Thomas Brox. A benchmark and a baseline for robust multi-             bastian Scherer. TartanAir: a dataset to push the limits of
+     view depth estimation. In 3DV, 2022. 16                               visual SLAM. In Proc.IROS, 2020. 16
+                                                                      [75] Yifan Wang, Jianjun Zhou, Haoyi Zhu, Wenzheng Chang,
+[61] Jay Shah, Ganesh Bikshandi, Ying Zhang, Vijay Thakkar,
+                                                                           Yang Zhou, Zizun Li, Junyi Chen, Jiangmiao Pang, Chun-
+     Pradeep Ramani, and Tri Dao. FlashAttention-3: Fast and
+                                                                           hua Shen, and Tong He. π 3 : Permutation-equivariant visual
+     accurate attention with asynchrony and low-precision. In
+                                                                           geometry learning. 2026. 3
+     Proc. NeurIPS, 2024. 5
+                                                                      [76] Zhou Wang, Alan C. Bovik, Hamid R. Sheikh, and Eero P.
+[62] Vincent Sitzmann, Semon Rezchikov, Bill Freeman, Josh
+                                                                           Simoncelli. Image quality assessment: from error visibility
+     Tenenbaum, and Frédo Durand. Light field networks: Neu-
+                                                                           to structural similarity. IEEE Trans. on Image Processing,
+     ral scene representations with single-evaluation rendering. In
+                                                                           13(4), 2004. 5
+     Proc. NeurIPS, 2021. 3
+                                                                      [77] Daniel Watson, William Chan, Ricardo Martin-Brualla,
+[63] Brandon Smart, Chuanxia Zheng, Iro Laina, and Vic-                    Jonathan Ho, Andrea Tagliasacchi, and Mohammad
+     tor Adrian Prisacariu. Splatt3R: Zero-shot gaussian splatting         Norouzi. Novel view synthesis with diffusion models. In
+     from uncalibrated image pairs. arXiv, 2408.13912, 2024. 1,            Proc. ICLR, 2023. 3
+     3
+                                                                      [78] Rundi Wu, Ben Mildenhall, Philipp Henzler, Keunhong
+[64] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denois-                Park, Ruiqi Gao, Daniel Watson, Pratul P. Srinivasan, Dor
+     ing diffusion implicit models. ICLR, 2021. 14                         Verbin, Jonathan T. Barron, Ben Poole, and Aleksander
+[65] Rupesh Kumar Srivastava, Klaus Greff, and Jürgen Schmid-             Holynski. ReconFusion: 3D Reconstruction with Diffusion
+     huber. Highway networks. arXiv.cs, abs/1505.00387, 2015.              Priors. 2024. 3, 8, 13
+     4                                                                [79] Rundi Wu, Ruiqi Gao, Ben Poole, Alex Trevithick, Changxi
+[66] Stanislaw Szymanowicz, Christian Rupprecht, and Andrea                Zheng, Jonathan T. Barron, and Aleksander Holynski.
+     Vedaldi. Splatter Image: Ultra-fast single-view 3D recon-             CAT4D: create anything in 4D with multi-view video dif-
+     struction. In Proceedings of the IEEE Conference on Com-              fusion models. In Proc. CVPR, 2025. 3
+     puter Vision and Pattern Recognition (CVPR), 2024. 1, 3,         [80] Hongchi Xia, Yang Fu, Sifei Liu, and Xiaolong Wang.
+     8                                                                     RGBD objects in the wild: Scaling real-world 3D object
+[67] Stanislaw Szymanowicz, Eldar Insafutdinov, Chuanxia                   learning from RGB-D videos. In Proc. CVPR, 2024. 5, 16
+     Zheng, Dylan Campbell, João F. Henriques, Christian Rup-        [81] Haodong Xiang, Xinghui Li, Kai Cheng, Xiansong Lai,
+     precht, and Andrea Vedaldi. Flash3D: Feed-forward gen-                Wanting Zhang, Zhichao Liao, Long Zeng, and Xueping Liu.
+     eralisable 3D scene reconstruction from a single image. In            GaussianRoom: improving 3D Gaussian splatting with SDF
+     Proceedings of the International Conference on 3D Vision              guidance and monocular cues for indoor scene reconstruc-
+     (3DV), 2025. 1, 3, 8                                                  tion. arXiv, 2405.19671, 2025. 1
+[82] Haofei Xu, Songyou Peng, Fangjinhua Wang, Hermann
+     Blum, Daniel Barath, Andreas Geiger, and Marc Polle-
+     feys. DepthSplat: Connecting Gaussian Splatting and Depth.
+     CVPR, 2025. 3, 7, 13
+[83] Yao Yao, Zixin Luo, Shiwei Li, Jingyang Zhang, Yufan
+     Ren, Lei Zhou, Tian Fang, and Long Quan. Blendedmvs:
+     A large-scale dataset for generalized multi-view stereo net-
+     works. CVPR, 2020. 16
+[84] Botao Ye, Sifei Liu, Haofei Xu, Li Xueting, Marc Pollefeys,
+     Ming-Hsuan Yang, and Peng Songyou. No Pose, No Prob-
+     lem: Surprisingly Simple 3D Gaussian Splats from Sparse
+     Unposed Images. ICLR, 2025. 1, 3, 7
+[85] Botao Ye, Boqi Chen, Haofei Xu, Daniel Barath, and Marc
+     Pollefeys. Yonosplat: You only need one model for feedfor-
+     ward 3d gaussian splatting. ICLR, 2026. 3
+[86] Alex Yu, Vickie Ye, Matthew Tancik, and Angjoo Kanazawa.
+     PixelNeRF: Neural radiance fields from one or few images.
+     In Proc. CVPR, 2021. 3
+[87] Wangbo Yu, Jinbo Xing, Li Yuan, Wenbo Hu, Xiaoyu Li,
+     Zhipeng Huang, Xiangjun Gao, Tien-Tsin Wong, Ying Shan,
+     and Yonghong Tian. ViewCrafter: taming video diffu-
+     sion models for high-fidelity novel view synthesis. arXiv,
+     2409.02048, 2024. 3
+[88] Amir Roshan Zamir, Alexander Sax, William B. Shen,
+     Leonidas J. Guibas, Jitendra Malik, and Silvio Savarese.
+     Taskonomy: Disentangling task transfer learning. In Proc.
+     CVPR, 2018. 16
+[89] Jason Y. Zhang, Amy Lin, Moneish Kumar, Tzu-Hsuan
+     Yang, Deva Ramanan, and Shubham Tulsiani. Cameras as
+     rays: Pose estimation via ray diffusion. In Proc. ICLR, 2024.
+     4, 16
+[90] Kai Zhang, Sai Bi, Hao Tan, Yuanbo Xiangli, Nanxuan Zhao,
+     Kalyan Sunkavalli, and Zexiang Xu. GS-LRM: Large Re-
+     construction Model for 3D Gaussian Splatting. ECCV, 2024.
+     3, 6
+[91] Richard Zhang, Phillip Isola, Alexei A. Efros, Eli Shecht-
+     man, and Oliver Wang. The unreasonable effectiveness of
+     deep features as a perceptual metric. In Proc. CVPR, 2018.
+     5
+[92] Shangzhan Zhang, Jianyuan Wang, Yinghao Xu, Nan Xue,
+     Christian Rupprecht, Xiaowei Zhou, Yujun Shen, and Gor-
+     don Wetzstein. Flare: Feed-forward geometry, appearance
+     and camera estimation from uncalibrated sparse views. In
+     Proc. CVPR, 2025. 3, 7, 13
+[93] Tinghui Zhou, Richard Tucker, John Flynn, Graham Fyffe,
+     and Noah Snavely. Stereo magnification: Learning view syn-
+     thesis using multiplane images. arXiv, 1805.09817, 2018. 2,
+     5, 6, 16
+[94] Chen Ziwen, Hao Tan, Kai Zhang, Sai Bi, Fujun Luan, Yi-
+     cong Hong, Li Fuxin, and Zexiang Xu. Long-LRM: Long-
+     sequence Large Reconstruction Model for Wide-coverage
+     Gaussian Splats. ICCV, 2025. 3
+  LagerNVS: Latent Geometry for Fully Neural Real-time Novel View Synthesis
+                                               Supplementary Material
+  Dataset   Views    Posed   Split   PSNR    SSIM     LPIPS          Inputs           LVSM                    Ours
+  Re10k     2        ✓       [10]    29.05    0.901   0.147
+  Re10k     2        ✗       [10]    28.28    0.885   0.155
+  Re10k     2        ✓       [92]    26.40    0.867   0.188
+  Re10k     2        ✗       [92]    25.64    0.848   0.201
+
+  DL3DV     2        ✓       [82]    21.77    0.692   0.287
+  DL3DV     2        ✗       [82]    21.33    0.670   0.301
+  DL3DV     4        ✓       [82]    24.94    0.780   0.188
+  DL3DV     4        ✗       [82]    23.99    0.744   0.206
+  DL3DV     6        ✓       [82]    26.14    0.808   0.159
+  DL3DV     6        ✗       [82]    24.97    0.769   0.178
+  DL3DV     16       ✓       [33]    25.42    0.782   0.171
+  DL3DV     16       ✗       [33]    23.49    0.719   0.211
+
+  CO3D      3        ✓       [78]    21.31    0.691   0.386
+  CO3D      3        ✗       [78]    20.22    0.667   0.431
+  CO3D      6        ✓       [78]    23.65    0.733   0.317
+  CO3D      6        ✗       [78]    21.65    0.684   0.377
+  CO3D      9        ✓       [78]    24.74    0.747   0.292
+  CO3D      9        ✗       [78]    22.37    0.697   0.352
+
+  Mip360    3        ✓       [78]    18.08    0.434   0.497
+  Mip360    3        ✗       [78]    17.45    0.413   0.531
+  Mip360    6        ✓       [78]    19.39    0.469   0.436
+  Mip360    6        ✗       [78]    18.97    0.447   0.466       Figure A1. Additional comparison vs LVSM. Our model better
+  Mip360    9        ✓       [78]    20.39    0.493   0.402       maintains consistent shape in regions where 2D matching across
+  Mip360    9        ✗       [78]    19.68    0.462   0.438       inputs is challenging (top 2 rows) and shows better monocular
+                                                                  depth estimation (bottom row).
+Table A1. Generalizable model performance at 512 × 512. To
+facilitate future comparisons, we report the performance of our
+generalizable model on a number of standard high-resolution NVS
+                                                                  where matching in 2D is difficult, due to low overlap (first
+benchmarks, with and without source camera poses.                 row), repeated patterns (second row), and geometry close to
+                                                                  the camera (third row). This indicates that the 3D bias from
+A. Additional experimental results                                pre-training helps to disambiguate such challenging cases.
+
+Our project page szymanowiczs . github . io /                     A.3. SVSM
+lagernvs includes video results, which we encourage the           SVSM [39], a concurrent work, is a variant of LVSM
+reader to view.                                                   that, similarly to us, adopts an encoder-decoder network
+                                                                  with a cross-attention decoder. Unlike us, however, they
+A.1. Generalizable, high-resolution NVS                           focus on efficient compute usage, and use unidirectional
+Previous works on deterministic Novel View Synthesis typ-         cross-attention (Alg. 1). We instead study the role of 3D
+ically evaluate quantitative performance in a single-dataset      pre-training, use a larger encoder and bidirectional cross-
+setting at low resolution (256). To facilitate future com-        attention. As shown in Tab. A2, we achieve better quality,
+parisons, we include quantitative evaluation on a number of       although our network is larger. The training efficiency find-
+standard benchmarks at 512 × 512, with and without known          ings from SVSM are orthogonal to our 3D pre-training and
+camera poses in Tab. A1.                                          design and can likely be combined for further gains.
+A.2. Additional comparisons to LVSM                               A.4. Additional comparisons to 3DGS
+Additional qualitative comparisons to LVSM in Fig. A1             We include additional visual comparisons to feed-forward
+complement Tab. 1 and Fig. 5 from the main paper. Fig-            3DGS methods in Fig. A2, with and without known cam-
+ure A1 shows that our model performs better on examples           eras, further illustrating that our method improves perfor-
+                                     Inputs                    Baseline      Ours                           GT
+       with cameras vs Depthsplat
+
+
+
+
+                                     +cameras
+
+
+
+
+                                    +cameras
+       w/o cameras vs AnySplat
+
+
+
+
+                                    no cameras
+
+
+
+
+                                    no cameras
+
+Figure A2. Qualitative comparison vs Feed-forward 3DGS. Our model more accurately represents reflective areas (mirror, top row and
+table, second row) and thin structures (metal rod, top row and chair arm, second row). The global, latent representation leads to better
+surface alignment (suitcase handle, third row and teddy bear, bottom row) and is more robust to occlusions (floor, third row).
+
+                                               PSNR    SSIM    LPIPS      they are still surprisingly reasonable (occluded grass and
+                                     SVSM      30.01   0.910   0.096      road in the bottom row of Fig. A3). A more principled so-
+                                     Ours      31.39   0.928   0.078      lution to handling occlusions correctly is to use a diffusion
+Table A2. LagerNVS outperforms SVSM due to greater model                  decoder, which can sample from the conditional probability
+capacity and 3D pre-training.                                             distribution. We illustrated an example of how our model
+                                                                          can be fine-tuned as a diffusion model in Fig. 9 of the main
+mance on reflective surfaces, thin structures, and occluded               paper. The next section includes more details.
+regions. Other methods can suffer from surface misalign-
+ment, especially in 360◦ captures.                                        B. Diffusion
+A.5. Occlusions                                                           Implementation details. We make two modifications to
+The main model we present is deterministic, so in case of                 the architecture of the decoder to allow it to operate as
+ambiguity (e.g., from occlusions), it tends to regress to the             a diffusion model. First, we add adaLN-zero [51] condi-
+mean. Interestingly, however, we find that in simple cases,               tioning layers to the decoder to condition it on the denois-
+the “mean” is a good enough approximation to the ambigu-                  ing timestep. Second, the input patch embedding layer is
+ous regions. In Fig. A3, we show two examples where the                   changed to accept 3 additional channels, corresponding to
+completion is successful: the corner of the bathtub, and the              the noisy input, leading to a total of 3 + 6 = 9 input chan-
+bottom of the box and shelf. In more difficult examples,                  nels in the decoder. We employ a DDIM scheduler [64]
+as in other deterministic methods (see the limitations sec-               with 1000 training timesteps, a linear beta schedule from
+tion of RayZer [33]), completions are necessarily blurry, but             βstart = 0.001 to βend = 0.02, and train the model to pre-
+               Input 1        Input 2           Novel View          size 9×1024 and 1024×1024, respectively, with SiLU [20]
+                                                                    activation in between. The VGGT “camera token,” which
+                                                                    distinguishes the first camera from the remaining ones, is
+                                                                    added to the projected token. When cameras g i are not
+                                                                    available, we set the first 9 elements of the camera vector
+Easier cases
+
+
+
+
+                                                                    to 0: g i [: 9] = 0, but keep the scale normalization fac-
+                                                                    tor. Similarly to VGGT, we use the camera pose of the first
+                                                                    camera g 1 as the reference frame.
+                                                                        Image and camera tokens are fed to the encoder back-
+                                                                    bone ((3) in Fig. A4), which has weights initialized from
+                                                                    VGGT. The backbone consists of an image embedder (a
+                                                                    24-layer transformer), which operates per-image, and the
+                                                                    aggregator (a 48-layer transformer), which interleaves local
+                                                                    (per-frame) and global (per-sequence) attention layers. We
+Harder case
+
+
+
+
+                                                                    keep the architecture of the backbone unmodified; see [72]
+                                                                    for details. We keep the tokens output by the last local at-
+                                                                    tention layer and the last global attention layer, and con-
+                                                                    catenate them channel-wise. The backbone output thus has
+                                                                    shape V × P × (2 × 1024), where P is the number of to-
+                                                                    kens processed by VGGT, after discarding the camera and
+Figure A3. Occlusions. Our model can handle simple occlusions,
+                                                                    register tokens.
+such as the corner of the bathtub (top) or the bottom part of the
+black box (middle). In more difficult settings (bottom), comple-        Next (in (4) in Fig. A4), a linear layer of weight ma-
+tions are blurry (as expected), but still reasonable.               trix with size 2048 × 768 is used to project two features
+                                                                    (one from a global attention layer and one from local atten-
+                                                                    tion layer) of VGGT channel dimension, 1024, to the one
+dict the clean sample directly (i.e., x0 prediction) in pixel
+                                                                    expected by the decoder, 768; this is followed by a Layer
+space. We use a zero-SNR noise scheduler [44] shifted with
+                                                                    Normalization [3] layer. Such operations output per-image
+a ratio of 4 to account for a relatively high (256×256) reso-
+                                                                    tokens z i , which are concatenated for the whole sequence
+lution [28]. Training uses Mean-Squared Error and Percep-
+                                                                    to form the latent 3D representation (z 1 , . . . , z V ).
+tual Losses [36] with weights 1.0 and 4.0, respectively, and
+a learning rate of 1 × 10−5 for 60k iterations.                     C.2. Architecture: decoder
+Discussion. Our diffusion decoder can only generate indi-           Here we include additional details of the decoder de-
+vidual Novel Views, thus generating a video would neces-            scribed in the main paper, with a visual illustration shown
+sarily result in flicker. Generating a consistent video would       in Fig. A5.
+require a video diffusion model as a decoder, or an autore-
+                                                                        The decoder receives the latent 3D representation of the
+gressive formulation like in [8]. Both are possible, are or-
+                                                                    3D scene (z 1 , . . . , z V ), as well as the target camera pose g.
+thogonal to our contributions, and are an exciting direction
+                                                                    The camera is first tokenized ((1) in Fig. A5) with a strided
+for future work.
+                                                                    convolution layer, reshaped, and followed by concatenating
+                                                                    4 register tokens, as described in Sec. 3.2 of the main paper.
+C. Implementation details                                               Next, the scene representation tokens and the camera to-
+C.1. Architecture: encoder                                          kens s are input to the backbone of the decoder, a Vision
+                                                                    Transformer [18] ((2) in Fig. A5). We use ViT-B, which is
+Here we include additional details of the encoder described         a transformer with channel dimension C = 768, 12 heads,
+in the main paper. Figure A4 serves as a visual reference.          and 12 transformer blocks (implemented as in Sec. C.2.1
+    Recall that VGGT operates with images with longer side          and Alg. 1). The feed-forward layers have a hidden dimen-
+H ′ = 518 or W ′ = 518 and token dimension 1024. We                 sion expansion factor of 4. Finally, we discard the scene
+wish to support images with longer side up to H = 512 or            reconstruction tokens and the register tokens, and read out
+W = 512 (to follow standard resolutions on NVS bench-               ((3) in Fig. A5) the novel view from the updated target cam-
+marks). Source images are thus first resized to the dimen-          era tokens. The readout process includes normalization,
+sion expected by VGGT [72], i.e., with longer side 518,             projecting each of P tokens from channel dimension C to
+using bilinear interpolation ((1) in Fig. A4).                      3×r′2 (recall r′ is the patch size of the decoder), rearranging
+    Camera tokens g i are projected to the token dimension          to the final image dimension H × W × 3, and a per-element
+1024 ((2) in Fig. A4) using two linear layers with weight           sigmoid activation function. Following LVSM [35], we do
+                  2) Project VGGT        Optional            (3) Backbone: Initialize from VGGT                       (4) Read out tokens
+                   cameras ‘camera       cameras
+                                         gi: V × 11
+                             token’                                                  Aggregator
+                                                      Embedder
+
+
+
+
+                                                                                                                                       Concat.
+                    Linear
+
+
+
+
+                                                                                                                              Linear
+                                                                                                                                        Norm
+                    SiLU                                Outputs
+         Input                                        image tokens
+                                                                                    Repeat N times
+                    Linear    Add
+        Images
+      V×H×W×3          V × H’ × W’ × 3   V × 1024     V × P × 1024
+                                                                                Local          Global
+                                                                                                              V × P × (2 × 1024)
+                                                                                                                                                 Output
+                                                                              attention       attention                                          3D repr.
+                                                                                                                                                  (z1, …, zV )
+                                                                                                                                                 (V × P) × C
+
+
+               1) Upsize
+                  for
+                VGGT
+
+
+
+Figure A4. Encoder. The encoder takes as source V images and, optionally, V cameras. The images are upsized (1) to the dimension
+expected by VGGT, and cameras g are projected (2) to conditioning tokens. Image and camera tokens are fed together to the encoder
+backbone, which is initialized with VGGT weights (3). The tokens from the last local attention layer and global attention layer of VGGT
+are concatenated, after discarding camera tokens. These tokens are then (4) projected to decoder channel dimension C to form the output
+latent 3D representation (z 1 , . . . , z V ).
+
+not use biases in the decoder layers.                                                                               Target camera
+                                                                                                3D repr.               g: H × W × 6
+                                                                                                 from
+C.2.1. Attention mechanism                                                                      encoder
+                                                                                               (V × P) × C           (1) Tokenize
+As introduced in Sec. 3.2 of the main paper, we consider                                        (z1, …, zV)           s: (P + 4) × C
+two variants of the attention mechanism in the transformer
+blocks (see Alg. 1). First, we consider the “full atten-
+tion” variant, where both scene reconstruction tokens and
+the target camera tokens serve as queries, keys, and val-
+                                                                                                                         (2) ViT
+ues in the attention mechanism. In the “cross-attention”                                             (3) Read out
+variant, we implement bidirectional cross-attention. In this                                              Norm
+variant, both the camera and scene tokens are updated via                                                 Linear
+cross-attention to the other. The target camera tokens are                                                Rearr.
+allowed to self-attend, but there is no self-attention be-                                                Sigmoid
+tween the scene tokens. Both sets of tokens are updated via                                                              H×W×3
+feed-forward layers. The algorithm for both is described                                                               Output
+in Alg. 1. Such an implementation allows the target cam-                                                              Novel View
+era tokens and latent geometry tokens to communicate with
+each other and update, without quadratic growth of com-                     Figure A5. Decoder. The decoder tokenizes the target camera (1),
+                                                                            in the form of a Plucker ray map [89]. The scene tokens (left) and
+plexity of the attention operation.
+                                                                            target camera tokens s are fed to a Vision Transformer (2) [18],
+   A variant which we do not consider in the main paper,                    with two variants of the attention mechanism (see text). The reg-
+but is commonly used in multimodal transformers such as                     ister tokens and scene tokens are discarded after the transformer,
+text-to-image diffusion models [55], is unidirectional cross-               and output novel views are read out from the remaining tokens.
+attention. We detail this variant in Alg. 1 as well, but
+do not use it in practice, because we find that it performs                 C.3. Training details
+poorly as the number of source views increases. Concretely,
+                                                                            Data One advantage of building on multi-view stereo mod-
+in Tab. A3, we find that while the gap in performance to full
+                                                                            els like VGGT [72] is that they generalize well due to
+attention is small (−0.8 PSNR) with two source views, it
+                                                                            training on a large collection of datasets. In line with
+grows substantially (to −1.9 PSNR) as the number of views
+                                                                            this work, we consider a rich mix of datasets to super-
+increases to 6. The unidirectional cross-attention variant is
+                                                                            vise our model too, including TartanAir [74], Eden [40],
+faster because it does not require additional cross-attention
+                                                                            ARKit [6], BlendMVS [83], Hypersim [54], UCo3D [48],
+and feed-forward update of scene reconstruction tokens.
+                                                                            Taskonomy [88], RealEstate10k [93], StaticThings [60],
+   We select the “bidirectional cross-attention” variant for                NeSF [70], MVSSync [30], WildRGBD [80], and approx-
+our generalizable model (described in Sec. 4.2) as a middle                 imately 45k Internet-style videos, whose cameras were an-
+ground between speed and quality.                                           notated using a structure-from-motion pipeline [59] with
+Algorithm 1 Transformer block
+Require: Camera tokens s, Reconstructed tokens z, Attention Mode M
+ 1: procedure ATTENTION B LOCK(s, z, M )
+ 2:    if M = “Full attention” then
+ 3:                                                            ▷ Tokens are concatenated prior to the block: c = [z ∥ s]
+ 4:        c ← c + SelfAttn (Q = c , K = c , V = c )
+ 5:        c ← c + FFN(c)
+ 6:        return c                                                             ▷ Sequence split occurs after all blocks
+ 7:    else if M = “Unidirectional cross-attn.” then
+ 8:                                                                                   ▷ Standard cross-attention block
+ 9:        s ← s + SelfAttn (Q = s , K = s , V = s )
+10:        s ← s + CrossAttn(Q = s , K = z , V = z )
+11:        s ← s + FFN(s)
+12:        return s
+13:    else if M = “Bidirectional cross-attention” then
+14:                                                                                        ▷ Bidirectional conditioning
+15:        s ← s + SelfAttn (Q = s , K = s , V = s )
+16:        s ← s + CrossAttn(Q = s , K = z , V = z )                                         ▷ Standard cross-attention
+17:        z ← z + CrossAttn(Q = z , K = s , V = s )                          ▷ Cross-attention the ‘opposite’ direction
+18:        z ← z + FFN(z)                                                                ▷ FFN applied to scene tokens
+19:        s ← s + FFN(s)                                                              ▷ FFN applied to camera tokens
+20:        return s, z
+21:    end if
+22: end procedure
+
+
+                                                                      Max # imgs             Quality (PSNR)
+                Attention                               Complexity   @ 512 real-time   2-view    4-view   6-view   Params
+
+                Full                                    O(V 2 )             6          21.30     24.17    24.84    85M
+                Unidirectional cross-attn. (not used)   O(V )              26          20.51     22.56    22.91    113M
+                Bidirectional cross-attn. (ours)        O(V )               9          21.02     23.65    24.54    170M
+
+Table A3. Decoder attention variants. The bidirectional cross-attention mechanism used for the main model offers a good trade-off
+between real-time rendering speed and NVS quality.
+
+post-filtering. We sample the datasets with variable propor-              each batch to allow our model to accept a variable number
+tions, balancing their relative size and diversity.                       of source images at test time. We randomly use 1 − 10
+                                                                          source views in each batch, inclusive. We sample (uni-
+Shared hyperparameters Throughout all experiments,                        formly) an even number of source views with probability
+we use AdamW [17] optimizer with beta coefficients                        4 : 1 to sampling an odd number of views. Each exam-
+(β1 , β2 ) = (0.9, 0.95) and weight decay of 0.05. We skip                ple has a fixed number of target views Vtarget = 8. We
+iterations when the gradient norm is larger than 5.0. The                 randomly drop the camera pose token for 40% of training
+learning rate is warmed up linearly for 3k iterations, fol-               examples, jointly training for posed and unposed NVS. As-
+lowed by cosine annealing to zero with warm restarts. We                  pect ratio is sampled uniformly in the log domain between
+detail the remaining hyperparameters in Tab. A4.                          [0.5, 2.0].
+Multiple targets per one scene encoding. The forward                      Scene scale. To generate the target image I, an NVS al-
+pass through the encoder, which has to process V ≥ 1 im-                  gorithm is given the target camera g, which specifies how
+ages, is much slower than a pass through the decoder, which               much the camera moves with respect to the imaged scene.
+processes a single target view. We thus rebalance the costs               Due to scale ambiguity, cameras and 3D scene are generally
+by predicting Vtarget ≥ 1 target views for each set of source             only defined up to a common scaling factor. The NVS al-
+images in a single batch (these images are rendered in par-               gorithm must determine the relationship between the scene
+allel but still independently).                                           scale and the target camera scale to interpret the target view-
+View, image, and camera augmentation. We randomly                         point correctly.
+sample the number of source views V during training for                      When there are several source views with know source
+                       Experiment                                    Iter.    LR       Batch    Data   Source Views   Res   Grad clip
+                       LVSM comparison Tab 1. (a-c)                  100k    4e − 4     64     Re10k        2         256     1.0
+                       LVSM comparison Tab 1. (d-f)                  100k    4e − 4     512    Re10k        2         256     1.0
+                       Ablations Tab 2.                              100k    1e − 4      64     All        2–4        256     3.0
+                       3DGS Tab 3. DL3DV posed                       100k    4e − 4     512    DL3DV       2–6        256      3.0
+                       Final model, 3DGS Tab 3. Unposed and Tab 4.   250k    1e − 4     512     All       1–10        512      3.0
+
+Table A4. Hyperparameters. We detail the training hyperparameters for each experiment. The model used for comparison in “3DGS Tab
+3. Unposed” can also accept camera poses as conditioning, and we use it as our final model.
+
+cameras, the NVS algorithm can infer the scale of the scene                           we can rescale the scene and cameras by a common factor
+relative to those cameras from triangulation, and use this                            to obtain a different tuple (q, λt, k, λw1 , λw2 ), obtaining
+information to interpret the scale of the target camera too.                          another valid training example. Because one scaling factor
+However, when the source cameras are not specified as in-                             may be unavailable at inference time, at training time we
+put, or when there is a single source view and triangulation                          also randomly drop either of them out, setting it to zero, in
+is not possible, the NVS algorithm requires additional in-                            which case the model learns to rely only on the other.
+formation and/or assumptions to find the relation between                                 In practice, this is done as follows.
+the scene scale and the target camera scale.                                          1. If only camera poses are available for a particular train-
+   A possible approach is to assume that the target camera                                ing scene, then w2 = 0 and we choose λ so that that
+motion is expressed meters, and that the NVS model can                                    λw1 := 1.35 (1.35 chosen as a hyperparameter follow-
+implicitly perform metric reconstruction of the scene. We                                 ing LVSM).
+discount this approach because it is challenging to collect                           2. If both camera poses and points are available, the we
+metric data at large enough volumes for training accurate                                 proceed as follows.
+metric NVS systems.                                                                       • We choose a λ. To do so, with 50% probability, we
+   Another approach is to define the scale to be the maxi-                                  choose λ so that λw1 = 1.35 and with 50% probability
+mum distance of any camera pose from the reference (first)                                  so that λw2 = 1.
+camera, i.e., w1 = maxi (∥ti ∥2 ). This is convenient as                                  • We choose which, if any, scaling factor to drop out.
+camera poses can usually be estimated reliably and quickly                                  With 1/3 probability, we drop out w1 , w2 or neither,
+(e.g., from the 5-point algorithm [69]). Camera poses                                       thus training with (0, λw2 ), (λw1 , 0), or (λw1 , λw2 ).
+are also available for the majority of evaluation bench-
+                                                                                          At test time, whenever possible, we use the scaling factor
+marks, thus making this normalization method well-suited
+                                                                                      λw1 := 1.35 and pass w2 = 0 to the network. As discussed
+for quantitative evaluations.
+                                                                                      above, this is a viable option whenever there are at least two
+   On the other hand, when there is a single source image,
+                                                                                      cameras with non-overlapping origins. During quantitative
+or when all the source cameras overlap, w1 = 0 and using
+                                                                                      evaluation, we compute λ in the dataloader so λw1 := 1.35
+this scale is not possible. We thus consider a second method
+                                                                                      as required. If the evaluation is on unposed images, as dis-
+of normalization, based on the scale of the points observed
+                                                                                      cussed in the main paper, we set g i to the null token, keep-
+in the scene, which we define as the average distance from
+                                                                                      ing only scale parameter λw1 , so that the source cameras
+the reference camera to all points visible in all source im-
+                                                                                      are not available to the model, but scale is unambiguous.
+ages
+                                                                                      The network is able to implicitly learn the meaning of this
+                     1
+                                           1iuv ∥xiuv ∥2 ,                            scaling protocol during training, and thus uniquely estimate
+                               XXX
+      w2 = P P P
+              i    u      v   1iuv    i   u     v                                     the image I for the target camera g.
+where 1iuv is the indicator function that evaluates to 1 if                               When such scaling is not possible due to single source
+pixel in view i at coordinate u, v holds a valid depth, and                           image or overlapping camera origins, we use the other scal-
+xiuv is the world-coordinate location of the point.                                   ing factor. In the dataloader, we can compute λ so that
+   We train our model to use either normalization method,                             λw2 = 1.0, and pass (λw1 , λw2 ) = (0, 1.0). In some cases,
+depending on what is available at inference time. We do this                          we may not be able to compute w2 either (due to a lack
+by inputting both normalization factors w1 and w2 to the                              of depth information). Here, we simply pass (w1 , w2 ) =
+network as part of the camera parameters; in other words,                             (0, 1), which means that the target camera scale is expressed
+highlighting the target camera parameters, the NVS func-                              as a fraction of the scale of the points observed in the scene.
+tion is of the type:                                                                      Such training protocol was necessary for supporting
+                                                                                      single-view NVS with our main generalizable model. When
+                  I = f (q, t, k, w1 , w2 , . . . )
+                                                                                      training only with w1 (scaling based on cameras) and eval-
+For each given training scene and camera, this gives us a                             uation with one source image, the model was capable of
+certain value for the tuple (q, t, k, w1 , w2 ). Furthermore,                         rendering images under rotation around center of projection
+of the source camera, but unable to render images under
+camera translation. Adding scaling based on points dur-
+ing training, using w2 , resulted in successful renders under
+camera translation (as shown in Fig. 6 in the main paper).
+
+D. Limitations
+Our model is not capable of high-quality hallucination of
+unseen regions, and exhibits blurry renderings with block
+artifacts when rendering unobserved regions.
+    Occasionally, when rendering a video, such block arti-
+facts result in an impression of flicker, which often stems
+from uncertainty in geometry estimation, unobserved re-
+gions, or difficulty in estimating source camera poses. Ad-
+ditionally, regions with high-frequency patterns, such as
+grass or trees, are systematically poorly represented by our
+model—investigating this failure mode is an interesting av-
+enue for future work. Moreover, our model is suited only to
+static data, did not include humans in the training data, and
+did not include images with distortion (e.g., fish-eye). As a
+consequence, we do not expect the model to work well in
+such scenarios.
+
