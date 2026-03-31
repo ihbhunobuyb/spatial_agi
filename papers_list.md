@@ -1,5 +1,72 @@
 # Papers List
 
+## 2026-03-31 论文列表（arXiv 2026-03-19~27）
+
+| # | 日期 | 论文标题 | 核心贡献 | Spatial AGI相关性 | 分析方法 | 文档行数 |
+|---|------|----------|----------|-------------------|----------|----------|
+| 01 | 2026-03-27 | GeoSR | 几何token空间推理增强，Geometry-Unleashing Masking | ★★★★★ | arXiv API | ~550行 |
+| 02 | 2026-03-26 | HiSpatial | 层次化3D空间理解框架，RGB-D VLM | ★★★★★ | arXiv API | ~470行 |
+| 03 | 2026-03-27 | PerceptionComp | 长时域视频推理基准，1,114个复杂问题 | ★★★★★ | arXiv API | ~480行 |
+| 04 | 2026-03-26 | ViGoR-Bench | 视觉生成模型推理能力评估，20+模型测试 | ★★★★★ | arXiv API | ~460行 |
+| 05 | 2026-03-19 | GSMem | 3D高斯溅射持久空间记忆，零样本具身探索 | ★★★★★ | arXiv API | ~520行 |
+
+### 论文详情
+
+#### 1. GeoSR: Make Geometry Matter for Spatial Reasoning
+
+- **arXiv ID**: 2603.26639v1
+- **发布日期**: 2026-03-27
+- **作者**: Shihua Zhang, Qiuhong Shen, Shizun Wang, Tianbo Pan, Xinchao Wang
+- **类别**: cs.CV, cs.AI
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 空间推理, 几何token, VLM, 深度估计
+- **摘要**: 提出GeoSR框架，通过Geometry-Unleashing Masking和Geometry-Guided Fusion让VLM主动利用几何token进行空间推理，在静态和动态空间推理基准上建立新SOTA。
+- **文档**: papers/2026-03-31_01_GeoSR.md
+
+#### 2. HiSpatial: Taming Hierarchical 3D Spatial Understanding in Vision-Language Models
+
+- **arXiv ID**: 2603.25411v1
+- **发布日期**: 2026-03-26
+- **作者**: 多位作者
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 层次化3D理解, VLM, RGB-D, 空间VQA
+- **摘要**: 提出层次化框架将3D空间理解分解为四个层次，构建自动化管道处理5M图像生成3D空间VQA对，开发RGB-D VLM超越Gemini-2.5-pro等系统。
+- **文档**: papers/2026-03-31_02_HiSpatial.md
+
+#### 3. PerceptionComp: A Video Benchmark for Complex Perception-Centric Reasoning
+
+- **arXiv ID**: 2603.26653v1
+- **发布日期**: 2026-03-27
+- **作者**: 多位作者
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 视频推理, 长时域推理, MLLM评估, 多证据组合
+- **摘要**: 构建1,114个需要多时刻视觉证据的复杂问题，揭示当前MLLMs在长时域感知推理上的显著差距，最佳模型仅45.96%准确率。
+- **文档**: papers/2026-03-31_03_PerceptionComp.md
+
+#### 4. ViGoR-Bench: How Far Are Visual Generative Models From Zero-Shot Visual Reasoners?
+
+- **arXiv ID**: 2603.25823v1
+- **发布日期**: 2026-03-26
+- **作者**: 多位作者
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 视觉生成模型, 推理评估, 零样本, 物理推理
+- **摘要**: 揭示视觉生成模型在"逻辑荒漠"中的推理缺陷，提出ViGoR评估框架评估20+模型，发现即使最先进的系统也存在显著的推理缺陷。
+- **文档**: papers/2026-03-31_04_ViGoR_Bench.md
+
+#### 5. GSMem: 3D Gaussian Splatting as Persistent Spatial Memory
+
+- **arXiv ID**: 2603.19137v1
+- **发布日期**: 2026-03-19
+- **作者**: 多位作者
+- **类别**: cs.CV, cs.AI
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 3DGS, 空间记忆, 具身智能, 零样本探索
+- **摘要**: 提出GSMem框架，将3D高斯溅射作为持久空间记忆，实现空间回忆能力，通过混合探索策略在具身问答和终身导航上验证有效性。
+- **文档**: papers/2026-03-31_05_GSMem.md
+
 ## 2026-03-28 论文列表（arXiv 2026-03-26）
 
 | # | 日期 | 论文标题 | 核心贡献 | Spatial AGI相关性 | 文档行数 |

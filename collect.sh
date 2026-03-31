@@ -9,11 +9,19 @@ echo "=== Spatial AGI collection started at $(date) ===" >> "$LOGFILE"
 
 cd "$WORKDIR"
 
-# Search arXiv for spatial/reasoning/embodied AI papers
-QUERY="cat:(spatial+reasoning+OR+scene+graph+OR+embodied+AI+OR+robot+navigation)"
-URL="http://export.arxiv.org/api/query?search_all=$QUERY&max_results=10&sortOrder=descending&sortBy=submittedDate"
-
-curl -s "$URL" | grep -oP '<id>[^<]+</id>' | head -10 | sed 's/<id>//g;s|</id>||g' > /tmp/arxiv_papers.txt
+# Retry up to 3 times with backoff
+for i in 1 2 3; do
+    echo "Attempt $i..." >> "$LOGFILE"
+    curl -s --max-time 30 --retry 3 --retry-delay 10 \
+        "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.RO&max_results=5&sortBy=submittedDate&sortOrder=descending" \
+        > /tmp/arxiv_response.xml 2>&1
+    
+    if grep -q "<entry>" /tmp/arxiv_response.xml; then
+        break
+    fi
+    echo "Attempt $i failed, retrying in 10s..." >> "$LOGFILE"
+    sleep 10
+done
 
 # Generate daily thinking file
 {
@@ -21,9 +29,15 @@ curl -s "$URL" | grep -oP '<id>[^<]+</id>' | head -10 | sed 's/<id>//g;s|</id>||
     echo ""
     echo "## Papers Found"
     echo ""
-    while read -r url; do
-        echo "- $url"
-    done < /tmp/arxiv_papers.txt
+    
+    if grep -q "<entry>" /tmp/arxiv_response.xml; then
+        grep -oP '(?<=<id>)[^<]+(?=</id>)' /tmp/arxiv_response.xml | head -5 | while read -r url; do
+            echo "- $url"
+        done
+    else
+        echo "(API rate limited - no papers fetched)"
+    fi
+    
     echo ""
     echo "---"
     echo "*Generated at $(date)*"
