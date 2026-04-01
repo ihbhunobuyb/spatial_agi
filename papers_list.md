@@ -1,5 +1,74 @@
 # Papers List
 
+## 2026-04-02 论文列表（arXiv 2026-03-31）
+
+| # | 日期 | 论文标题 | 核心贡献 | Spatial AGI相关性 | 分析方法 | 文档行数 |
+|---|------|----------|----------|-------------------|----------|----------|
+| 01 | 2026-03-31 | OmniRoam | 全景视频生成实现长时域世界漫游，两阶段预览+精炼 | ★★★★★ | 手动分析 | ~200行 |
+| 02 | 2026-03-31 | Video Models Reason Early | 视频模型"早期计划承诺"现象，12步路径阈值 | ★★★★★ | 手动分析 | ~220行 |
+| 03 | 2026-03-31 | GeoCodeBench | PhD级3D几何编码基准，GPT-5仅36.6%准确率 | ★★★★★ | 手动分析 | ~210行 |
+| 04 | 2026-03-31 | SurgNavAR | AR手术导航框架，1mm校准精度 | ★★★★☆ | 手动分析 | ~210行 |
+| 05 | 2026-03-31 | Sensor Fusion 3D | 非平衡最优传输的多模态融合定位 | ★★★★☆ | 手动分析 | ~180行 |
+
+### 论文详情
+
+#### 1. OmniRoam: World Wandering via Long-Horizon Panoramic Video Generation
+
+- **arXiv ID**: 2603.30045v1
+- **发布日期**: 2026-03-31
+- **作者**: Yuheng Liu, Xin Lin, Xinke Li
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 全景视频生成, 世界模型, 轨迹控制, 长时域漫游
+- **摘要**: 提出OmniRoam框架，利用全景表示的丰富帧覆盖和长期空间-时间一致性，实现长时域场景漫游。两阶段设计：预览阶段生成场景概览，精炼阶段进行时间扩展和空间上采样。
+- **文档**: papers/2026-04-02_01_OmniRoam.md
+
+#### 2. Video Models Reason Early: Exploiting Plan Commitment for Maze Solving
+
+- **arXiv ID**: 2603.30043v1
+- **发布日期**: 2026-03-31
+- **作者**: Kaleb Newman, Tyler Zhu, Olga Russakovsky
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 视频扩散模型, 推理, 规划, 早期承诺, 迷宫求解
+- **摘要**: 研究视频模型内部规划动态，发现"早期计划承诺"现象：模型在前几个去噪步骤就确定整体轨迹。路径长度是关键因素，失败阈值在12步。提出ChEaP策略，准确率从7%提升到67%。
+- **文档**: papers/2026-04-02_02_VideoModelsReasonEarly.md
+
+#### 3. GeoCodeBench: Benchmarking PhD-Level Coding in 3D Geometric Computer Vision
+
+- **arXiv ID**: 2603.30038v1
+- **发布日期**: 2026-03-31
+- **作者**: Wenyi Li, Renkai Luo, Yue Yu
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 3D几何编码, 基准测试, AI辅助编程, 空间理解
+- **摘要**: 首个PhD级3D几何视觉编码基准。GPT-5仅36.6%准确率，揭示当前模型在3D空间理解上的巨大差距。发现"更多论文文本不一定更好" - Method section截断效果更好。
+- **文档**: papers/2026-04-02_03_GeoCodeBench.md
+
+#### 4. SurgNavAR: An Augmented Reality Surgical Navigation Framework
+
+- **arXiv ID**: 2603.29990v1
+- **发布日期**: 2026-03-31
+- **作者**: Abdullah Thabit, Mohamed Benmahdjoub, Rafiuddin Jinabade
+- **类别**: cs.CV, cs.RO
+- **相关性**: ⭐⭐⭐⭐
+- **关键词**: AR手术导航, 3D配准, 实时跟踪, 空间定位
+- **摘要**: 集成AR头显手术导航框架，支持患者和器械跟踪、术前影像配准、实时导航可视化。在HoloLens 2和Magic Leap 2上验证，达到1mm校准精度、3mm配准精度。
+- **文档**: papers/2026-04-02_04_SurgNavAR.md
+
+#### 5. Sensor Fusion for 3D Source Localization
+
+- **arXiv ID**: 2603.29940v1
+- **发布日期**: 2026-03-31
+- **作者**: Ilyes Jaouedi, Gilles Chardon, José Picheral
+- **类别**: cs.CV, eess.AS
+- **相关性**: ⭐⭐⭐⭐
+- **关键词**: 传感器融合, 3D定位, 最优传输, 多模态
+- **摘要**: 通过非平衡最优传输正则化项融合传感器阵列和相机观测，实现3D声源定位。无需训练数据，模块化设计，通用框架。
+- **文档**: papers/2026-04-02_05_SensorFusion3D.md
+
+---
+
 ## 2026-03-31 论文列表（arXiv 2026-03-19~27）
 
 | # | 日期 | 论文标题 | 核心贡献 | Spatial AGI相关性 | 分析方法 | 文档行数 |
