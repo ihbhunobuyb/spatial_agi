@@ -419,3 +419,55 @@
 - **关键词**: 视频生成, 推理一致性, 评估基准, 因果关系
 - **摘要**: 视频生成模型显示出新兴的推理行为，但确保生成的事件在帧之间保持因果一致性对于可靠部署至关重要。
 - **文档**: papers/2026-03-23_05_MME-CoF-Pro.md
+
+## 2026-04-07 论文列表（arXiv 2026-04-03）
+
+| # | 日期 | 论文标题 | 核心贡献 | Spatial AGI相关性 | 分析方法 | 文档行数 |
+|---|------|----------|----------|-------------------|----------|----------|
+| 01 | 2026-04-03 | Multi-View Video Diffusion Policy | 3D时空感知视频动作模型 | ★★★★★ | arXiv摘要 | ~150行 |
+| 02 | 2026-04-03 | Flash-Mono | 前馈单目3DGS SLAM | ★★★★★ | arXiv摘要 | ~120行 |
+| 03 | 2026-04-03 | SparseSplat | 稀疏3D Gaussian | ★★★★☆ | arXiv摘要 | ~90行 |
+| 04 | 2026-04-03 | LiDAR Off-Road Navigation | 越野自动驾驶 | ★★★★☆ | arXiv摘要 | ~100行 |
+| 05 | 2026-04-03 | PR3DICTR | 3D医学图像平台 | ★★★☆☆ | arXiv摘要 | ~80行 |
+
+### 论文详情
+
+#### 1. Multi-View Video Diffusion Policy: A 3D Spatio-Temporal-Aware Video Action Model
+
+- **arXiv ID**: 2604.03181v1
+- **发布日期**: 2026-04-03
+- **关键词**: video diffusion, spatio-temporal, robot manipulation, 3D understanding
+- **摘要**: 机器人操作需要同时理解3D空间结构和时间演化。提出Multi-View Video Diffusion Policy，利用视频扩散模型学习时空表示。
+- **文档**: papers/2026-04-07_01_multi_view_video_diffusion_policy.md
+
+#### 2. Flash-Mono: Feed-Forward Accelerated Gaussian Splatting Monocular SLAM
+
+- **arXiv ID**: 2604.03092v1
+- **发布日期**: 2026-04-03
+- **关键词**: 3D Gaussian Splatting, SLAM, monocular, feed-forward
+- **摘要**: 单目3DGS SLAM存在时间效率问题。提出前馈加速方法，实现实时3D重建。
+- **文档**: papers/2026-04-07_02_flash_mono_slam.md
+
+#### 3. SparseSplat: Towards Applicable Feed-Forward 3D Gaussian Splatting
+
+- **arXiv ID**: 2604.03069v1
+- **发布日期**: 2026-04-03
+- **关键词**: sparse 3DGS, feed-forward, pixel alignment
+- **摘要**: 之前的feed-forward 3DGS存在冗余问题。 SparseSplat提出稀疏表示减少冗余。
+- **文档**: papers/2026-04-07_03_sparse_splat.md
+
+#### 4. An Open-Source LiDAR and Monocular Off-Road Autonomous Navigation Stack
+
+- **arXiv ID**: 2604.03096v1
+- **发布日期**: 2026-04-03
+- **关键词**: LiDAR, off-road, autonomous navigation, obstacle detection
+- **摘要**: 越野自动驾驶需要可靠3D感知。提出LiDAR+单目融合的感知栈。
+- **文档**: papers/2026-04-07_04_lidar_offroad_nav.md
+
+#### 5. PR3DICTR: Platform for Research in 3D Image Classification
+
+- **arXiv ID**: 2604.03203v1
+- **发布日期**: 2026-04-03
+- **关键词**: 3D medical imaging, platform, classification
+- **摘要**: 3D医学图像研究需要统一平台。PR3DICTR提供标准化框架。
+- **文档**: papers/2026-04-07_05_pr3dictor.md
