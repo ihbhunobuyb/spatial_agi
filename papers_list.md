@@ -471,3 +471,45 @@
 - **关键词**: 3D medical imaging, platform, classification
 - **摘要**: 3D医学图像研究需要统一平台。PR3DICTR提供标准化框架。
 - **文档**: papers/2026-04-07_05_pr3dictor.md
+
+## 2026-04-08 研究的论文（精选5篇）
+
+#### 1. A Frame is Worth One Token: Efficient Generative World Modeling with Delta Tokens
+
+- **arXiv ID**: 2604.04913v1
+- **发布日期**: 2026-04-06
+- **关键词**: world model, video generation, delta token, efficient
+- **摘要**: 高效生成式世界模型，使用Delta token在VFM特征空间中预测未来。35x fewer参数，2000x fewer FLOPs。
+- **文档**: papers/2026-04-08_01_delta_tokens.md
+
+#### 2. Vero: An Open RL Recipe for General Visual Reasoning
+
+- **arXiv ID**: 2604.04917v1
+- **发布日期**: 2026-04-06
+- **关键词**: visual reasoning, reinforcement learning, open-source, VLM
+- **摘要**: 开源RL recipe构建通用视觉推理器，600K样本达到SOTA性能。
+- **文档**: papers/2026-04-08_02_vero.md
+
+#### 3. LoMa: Local Feature Matching Revisited
+
+- **arXiv ID**: 2604.04931v1
+- **发布日期**: 2026-04-06
+- **关键词**: local feature matching, 3D vision, data-driven
+- **摘要**: 数据驱动方法重新审视local feature matching，大规模数据混合物显著提升性能。
+- **文档**: papers/2026-04-08_03_loma.md
+
+#### 4. PointTPA: Dynamic Network Parameter Adaptation for 3D Scene Understanding
+
+- **arXiv ID**: 2604.04933v1
+- **发布日期**: 2026-04-06
+- **关键词**: test-time adaptation, 3D scene understanding, dynamic parameters
+- **摘要**: 测试时参数自适应框架，为场景级点云理解生成输入感知的网络参数。
+- **文档**: papers/2026-04-08_04_pointtpa.md
+
+#### 5. SpatialEdit: Benchmarking Fine-Grained Image Spatial Editing
+
+- **arXiv ID**: 2604.04911v1
+- **发布日期**: 2026-04-06
+- **关键词**: spatial editing, benchmark, synthetic data
+- **摘要**: 细粒度图像空间编辑benchmark，50万合成数据集。
+- **文档**: papers/2026-04-08_05_spatialedit.md
