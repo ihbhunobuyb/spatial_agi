@@ -513,3 +513,70 @@
 - **关键词**: spatial editing, benchmark, synthetic data
 - **摘要**: 细粒度图像空间编辑benchmark，50万合成数据集。
 - **文档**: papers/2026-04-08_05_spatialedit.md
+
+## 2026-04-09 论文列表（arXiv 2026-04-07）
+
+| # | 日期 | 论文标题 | 核心贡献 | Spatial AGI相关性 | 分析方法 | 文档行数 |
+|---|------|----------|----------|-------------------|----------|----------|
+| 01 | 2026-04-07 | SEM-ROVER | 大规模驾驶场景生成，Σ-Voxfield Grid | ★★★★★ | arXiv摘要 | ~770行 |
+| 02 | 2026-04-07 | Action Images | 端到端策略学习，多视角动作视频 | ★★★★★ | arXiv摘要 | ~800行 |
+| 03 | 2026-04-07 | HaloProbe | VLM物体幻觉检测，贝叶斯缓解 | ★★★★★ | arXiv摘要 | ~800行 |
+| 04 | 2026-04-07 | HumANDiff | 关节噪声扩散，运动一致性人体视频 | ★★★★★ | arXiv摘要 | ~780行 |
+| 05 | 2026-04-07 | MTP | 多token预测，一致世界模型 | ★★★★★ | arXiv摘要 | ~730行 |
+
+### 论文详情
+
+#### 1. SEM-ROVER: Semantic Voxel-Guided Diffusion for Large-Scale Driving Scene Generation
+
+- **arXiv ID**: 2604.06113v1
+- **发布日期**: 2026-04-07
+- **作者**: Hiba Dahmani, Nathan Piasco, Moussab Bennehar, et al.
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 3D场景生成, 扩散模型, 大规模场景, 多视图一致性
+- **摘要**: 提出Σ-Voxfield Grid表示和语义条件扩散模型，实现大规模户外驾驶场景生成。渐进式空间扩展支持任意规模，多视图一致性保证渲染质量。
+- **文档**: papers/2026-04-09_01_SEM-ROVER.md
+
+#### 2. Action Images: End-to-End Policy Learning via Multiview Video Generation
+
+- **arXiv ID**: 2604.06168v1
+- **发布日期**: 2026-04-07
+- **作者**: Haoyu Zhen, Zixian Gao, Qiao Sun, et al.
+- **类别**: cs.CV, cs.RO
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 机器人策略, 动作理解, 视频生成, 零样本学习
+- **摘要**: 将7-DoF机器人动作转化为多视角动作图像，建立统一的视觉-动作表示空间。视频模型可直接作为零样本策略，无需额外动作模块。
+- **文档**: papers/2026-04-09_02_Action_Images.md
+
+#### 3. HaloProbe: Bayesian Detection and Mitigation of Object Hallucinations in Vision-Language Models
+
+- **arXiv ID**: 2604.06165v1
+- **发布日期**: 2026-04-07
+- **作者**: Reihaneh Zohrabi, Hosein Hasani, Akshita Gupta, et al.
+- **类别**: cs.CV, cs.CL
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 物体幻觉, VLM可靠性, 贝叶斯推理, 幻觉缓解
+- **摘要**: 揭示注意力机制中的混淆因素（Simpson悖论），提出贝叶斯框架HaloProbe进行幻觉检测。非侵入性缓解策略在减少幻觉的同时保持实用性。
+- **文档**: papers/2026-04-09_03_HaloProbe.md
+
+#### 4. HumANDiff: Articulated Noise Diffusion for Motion-Consistent Human Video Generation
+
+- **arXiv ID**: 2604.05961v1
+- **发布日期**: 2026-04-07
+- **作者**: Tao Hu, Varun Jampani
+- **类别**: cs.CV
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 人体视频生成, 运动一致性, 扩散模型, 物理建模
+- **摘要**: 关节噪声采样+联合外观-运动学习+几何损失，实现运动一致性人体视频生成。即插即用，无需修改模型架构。
+- **文档**: papers/2026-04-09_04_HumANDiff.md
+
+#### 5. Toward Consistent World Models with Multi-Token Prediction and Latent Semantic Enhancement
+
+- **arXiv ID**: 2604.06155v1
+- **发布日期**: 2026-04-07
+- **作者**: Qimin Zhong, Hao Liao, Haiming Qin, et al.
+- **类别**: cs.CL, cs.LG
+- **相关性**: ⭐⭐⭐⭐⭐
+- **关键词**: 世界模型, 多token预测, 梯度归纳偏置, 结构幻觉
+- **摘要**: 分析MTP的梯度归纳偏置，揭示结构幻觉问题。提出LSE-MTP方法锚定真实隐藏状态轨迹，减少幻觉并提高可靠性。
+- **文档**: papers/2026-04-09_05_Multi_Token_Prediction.md
